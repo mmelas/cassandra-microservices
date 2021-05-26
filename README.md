@@ -25,3 +25,9 @@ to push image to dockerhub
 ```bash
 docker push nicktehrany/wdm-cassandra-microservices:payment
 ```
+
+to unset the minikube deamons (detach them from the docker deamon)
+
+```bash
+eval $(minikube docker-env -u)
+```
