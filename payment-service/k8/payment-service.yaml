@@ -1,0 +1,10 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: payment-service
+
+spec:
+  containers:
+    - name: payment-service
+      image: localhost:5000/cassandra-microservices-payment:latest
+      imagePullPolicy: IfNotPresent
