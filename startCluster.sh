@@ -8,9 +8,18 @@ elif ! command -v kubectl &> /dev/null; then
     exit 1
 fi
 
+# Disable minikube emojis
+export MINIKUBE_IN_STYLE=false
+
+# minikube cleaup before start
+kubectl delete --all pods --namespace=default &
+kubectl delete --all services --namespace=default &
+kubectl delete --all deployments --namespace=default &
+
 # Setup minikube
 minikube start
 eval $(minikube docker-env)
+minikube addons enable ingress
 
 docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:payment ./payment-service
 
