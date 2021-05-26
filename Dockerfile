@@ -1,8 +1,9 @@
 FROM tiangolo/meinheld-gunicorn-flask:python3.8-alpine3.11
 
 ENV VIRTUAL_ENV "/venv"
-RUN python -m venv $VIRTUAL_ENV
+RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH "$VIRTUAL_ENV/bin:$PATH"
+RUN pip3 install pip==21.1.2
 
 COPY requirements.txt /app/
 WORKDIR /app
