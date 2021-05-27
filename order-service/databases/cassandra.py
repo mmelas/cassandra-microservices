@@ -2,6 +2,8 @@ import logging
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
 from cassandra.policies import DCAwareRoundRobinPolicy
+from uuid import uuid4, UUID
+from cassandra.util import OrderedMapSerializedKey
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel('DEBUG')
@@ -12,21 +14,14 @@ LOGGER.addHandler(handler)
 
 KEYSPACE = "microservices"
 
-# TODO:
-#   - implement startup of cassandra db
-#   - connect to the cassandra db instance (not sure if it requires some user/password? we'll see)
-#   - create a table for the order service
-#   - provide basic functions to query the database (get, put, and update)
-
-# ? Possible performance improvmenent: add a total price to the order id so we don't have to recalculate everytime we access it
-
-# Cassandra database instance with constructor to setup the cluster, connection, and tables
-
 
 class CassandraDatabase():
+    """Cassandra database class instance"""
     cluster = session = None
+    orders = {}
 
     def __init__(self):
+        """Constructor connects to cluster and creates tables"""
 
         # Setup the Cluster on localhost and connect to it (TODO: likely will need to pass ip in k8s later on ...)
         self.cluster = Cluster(['127.0.0.1'], port=9042, protocol_version=3)
@@ -36,40 +31,92 @@ class CassandraDatabase():
 
         LOGGER.info("Setting up keyspace: %s" % KEYSPACE)
         self.session.execute("""CREATE KEYSPACE IF NOT EXISTS %s
-                           WITH replication = { 'class': 'SimpleStrategy',
-                           'replication_factor': '1' }
-                        """ % KEYSPACE)
+                                WITH replication = { 'class': 'SimpleStrategy',
+                                'replication_factor': '1' }
+                                """ % KEYSPACE
+                             )
 
         self.session.set_keyspace(KEYSPACE)
 
         LOGGER.info("Instantiating table order-service")
         self.session.execute("""CREATE TABLE IF NOT EXISTS orders (
-                           orderID uuid,
-                           userID uuid,
-                           items map<uuid, int>,
-                           PRIMARY KEY(orderID)
-                           )
-                        """)
+                                orderid uuid,
+                                userid uuid,
+                                items map<uuid, int>,
+                                PRIMARY KEY(orderid)
+                                )"""
+                             )
 
-# create another terminal and try to rerun app? (cqlsh seems to work so the node is running)cros
+    def put(self, orderid: UUID, userid: UUID):
+        """Insert an order with an orderid and a userid into the database."""
 
-    # def put(self, order_id, user_id, item_id):
-    #     self.session.execute()
+        # TODO: have to gen order id since we don't provide a way to get table size
+        self.session.execute("""INSERT INTO microservices.orders (orderid, userid) 
+                                VALUES (%s, %s)
+                                """, (orderid, userid)
+                             )
 
-    # TODO: def put(): put an item into the db
+    def get(self, orderid: UUID):
+        """Retrieve information of an order with orderid from the database"""
 
-    # TODO: def get(): get an item
+        order = self.session.execute("""SELECT * FROM microservices.orders 
+                                        WHERE orderid = %s
+                                        """ % orderid
+                                     )
 
-    # TODO: def update(): update an existing item
+        return {
+            'order_id': order.one()[0],
+            'user_id': order.one()[2],
+            # ? Maybe have to loop over items to convert map to json? also maybe don't always need the items so might be better to only do this when we need it.
+            'items': order.one()[1]
+        } if order.one() != None else None
 
-    # TODO: def delete(): delete an item
+    def update(self, orderid: UUID, itemid: UUID):
+        """Add items to an existing order"""
 
-    # Table design:
+        # TODO: Replace with a dict inside this class to skip this get for performance
+        order = self.get(orderid)
+        if order is None:
+            return 400
+        if (order['items'] != None and (itemid in order['items'])):
+            self.session.execute("""UPDATE microservices.orders
+                                    SET items[%s] = %s
+                                    WHERE orderid = %s
+                                    """, (itemid, order['items'][itemid] + 1, orderid))
+        else:
+            self.session.execute("""UPDATE microservices.orders
+                                   SET items[%s] = 1
+                                   WHERE orderid = %s
+                                   """, (itemid, orderid))
 
-    # what we need: order-id, user-id, (item, number),
+    def remove_item(self, orderid: UUID, itemid: UUID):
+        # if order does not exist or item does not exit 400 error
+        order = self.get(orderid)
+        print(order)
+        if order is None or order['items'] is None or itemid not in order['items']:
+            return 400
 
-    # # TODO: Maybe add TotalPrice for each item? (possible payment performance improvement)
-    #     pk         pk
-    # | order id | user id     | Map{(Item, amount)...}    |
-    # | oid_1    | uid_1       | {(banana, 2), (apple, 4)} |
-    # | ...      | ...         | ...                       |
+        # if item amount is 1 remove it
+        if order['items'][itemid] == 1:
+            query = self.session.execute("""DELETE items[%s] FROM microservices.orders 
+                                            WHERE orderid = %s
+                                            """, (itemid, orderid)
+                                         )
+        else:
+            # if order and item exists and item amount is > 1 decrement it by 1
+            self.session.execute("""UPDATE microservices.orders
+                                    SET items[%s] = %s
+                                    WHERE orderid = %s
+                                    """, (itemid, order['items'][itemid] - 1, orderid))
+
+    def delete(self, orderid: UUID):
+        """Delete an order from the database"""
+
+        # TODO: Replace with a dict inside this class to skip this get for performance
+        order = self.get(orderid)
+        if order is None:
+            return 400
+        query = self.session.execute("""DELETE FROM microservices.orders 
+                                        WHERE orderid = %s
+                                        """ % orderid
+                                     )
