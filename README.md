@@ -47,5 +47,5 @@ docker pull cassandra:3.11.10
 docker run -d --name microservices-database -p 127.0.0.1:9042:9042 cassandra:3.11.10
 
 # Then run the app.py of the ordering service
-python3.py app.py
+python3 app.py
 ```
