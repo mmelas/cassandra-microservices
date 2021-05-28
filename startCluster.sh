@@ -21,7 +21,7 @@ minikube start
 eval $(minikube docker-env)
 minikube addons enable ingress
 
-docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:payment ./payment-service
+# docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:order ./order-service
 
-kubectl apply -f payment-service/k8/payment-service.yaml
+kubectl apply -f order-service/k8s/order-service-cassandra.yaml
 # TODO: build all containers for all microservices and start minikube with the right configs

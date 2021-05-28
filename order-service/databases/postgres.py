@@ -28,8 +28,8 @@ class PostgresDatabase():
 
         self.cursor = self.connection.cursor()
 
-        # # load hstore extension into current database
-        # self.cursor.execute("""CREATE EXTENSION hstore;""")
+        # load hstore extension into current database
+        self.cursor.execute("""CREATE EXTENSION IF NOT EXISTS hstore;""")
 
         psycopg2.extras.register_hstore(self.connection)
         psycopg2.extras.register_uuid(self.connection)

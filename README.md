@@ -5,7 +5,8 @@ some notes for now..
 build the docker image for the respective microservice folder
 
 ```bash
-docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:payment ./payment-service
+# adjust build concurrency in the dockerfile to what your system can handle
+docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:payment ./payment-service 
 ```
 
 make sure it built
@@ -36,6 +37,7 @@ eval $(minikube docker-env -u)
 ### Temp for order service
 
 ```bash
+# adjust build concurrency in the dockerfile to what your system can handle
 docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:order ./order-service
 docker run -p 5000:5000 nicktehrany/wdm-cassandra-microservices:order
 ```
@@ -51,6 +53,9 @@ docker exec -it microservices-postgres cqlsh
 
 # Then run the app.py of the ordering service
 python3 app.py
+
+# OR Run using docker image of app
+docker run --net="host" nicktehrany/wdm-cassandra-microservices:order
 ```
 
 For postgres container
@@ -65,4 +70,7 @@ docker exec -it microservices-postgres psql -U postgres
 
 # Then run the app.py of the ordering service
 python3 app.py
+
+# OR Run using docker image of app
+docker run --net="host" nicktehrany/wdm-cassandra-microservices:order
 ```
