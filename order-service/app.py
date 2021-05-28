@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 from databases.cassandra import CassandraDatabase
+from databases.postgres import PostgresDatabase
 import logging
 from uuid import uuid4, UUID
 
@@ -68,7 +69,7 @@ def find_order(orderid: UUID):
         if order != 404:
             return order, 200
         else:
-            return jsonify({'message': 'non-existent orderid/itemid'}), 404
+            return jsonify({'message': 'non-existent orderid'}), 404
     except RuntimeError:
         return jsonify({'message': 'failure'}), 500
 
@@ -78,16 +79,31 @@ def checkout(orderid: UUID):
     LOGGER.info("Checking out orderid %s", orderid)
     try:
         # checkout logic here: call payment service and stock service
-        order # = ...
+        order  # = ...
         if order != 404:
             return jsonify({'message': 'success'}), 200
         else:
-            return jsonify({'message': 'non-existent orderid/itemid'}), 404
+            return jsonify({'message': 'non-existent orderid'}), 404
     except RuntimeError:
         return jsonify({'message': 'failure'}), 500
 
 
 if __name__ == "__main__":
     # TODO: check for type of db (cassandra or postgres) then use according one
-    database = CassandraDatabase()
+    # database = CassandraDatabase()
+    database = PostgresDatabase()
+    orderid = uuid4()
+    print("ORDERID: ", orderid)
+    userid = uuid4()
+    print("USERID: ", userid)
+    itemid = uuid4()
+    itemid2 = uuid4()
+    database.put(orderid, itemid)
+    print("Getting ", database.get(orderid))
+    print("Update 1st item: ", database.update(orderid, itemid))
+    print("Update 2nd item: ", database.update(orderid, itemid2))
+    print("Update 2nd item again: ", database.update(orderid, itemid2))
+    print("GET: ", database.get(orderid))
+    print("Deleting order: ", database.delete(orderid))
+    print("GET: ", database.get(orderid))
     app.run(host='0.0.0.0')

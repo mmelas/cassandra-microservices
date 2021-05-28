@@ -3,7 +3,6 @@ from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
 from cassandra.policies import DCAwareRoundRobinPolicy
 from uuid import uuid4, UUID
-from cassandra.util import OrderedMapSerializedKey
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel('DEBUG')
@@ -14,11 +13,12 @@ LOGGER.addHandler(handler)
 
 KEYSPACE = "microservices"
 
+# TODO: check if we can use async in some queries
+
 
 class CassandraDatabase():
     """Cassandra database class instance"""
-    cluster = session = None
-    orders = {}
+    cluster = connection = None
 
     def __init__(self):
         """Constructor connects to cluster and creates tables"""
@@ -26,43 +26,43 @@ class CassandraDatabase():
         # Setup the Cluster on localhost and connect to it (TODO: likely will need to pass ip in k8s later on ...)
         self.cluster = Cluster(['127.0.0.1'], port=9042, protocol_version=3)
         LOGGER.info("Connecting to cluster")
-        self.session = self.cluster.connect()
+        self.connection = self.cluster.connect()
         LOGGER.info("Connected to cluster")
 
         LOGGER.info("Setting up keyspace: %s" % KEYSPACE)
-        self.session.execute("""CREATE KEYSPACE IF NOT EXISTS %s
+        self.connection.execute("""CREATE KEYSPACE IF NOT EXISTS %s
                                 WITH replication = { 'class': 'SimpleStrategy',
                                 'replication_factor': '1' }
                                 """ % KEYSPACE
-                             )
+                                )
 
-        self.session.set_keyspace(KEYSPACE)
+        self.connection.set_keyspace(KEYSPACE)
 
         LOGGER.info("Instantiating table order-service")
-        self.session.execute("""CREATE TABLE IF NOT EXISTS orders (
+        self.connection.execute("""CREATE TABLE IF NOT EXISTS orders (
                                 orderid uuid,
                                 userid uuid,
                                 items map<uuid, int>,
                                 PRIMARY KEY(orderid)
                                 )"""
-                             )
+                                )
 
     def put(self, orderid: UUID, userid: UUID):
         """Insert an order with an orderid and a userid into the database."""
 
         # TODO: have to gen order id since we don't provide a way to get table size
-        self.session.execute("""INSERT INTO microservices.orders (orderid, userid) 
+        self.connection.execute("""INSERT INTO microservices.orders (orderid, userid) 
                                 VALUES (%s, %s)
                                 """, (orderid, userid)
-                             )
+                                )
 
     def get(self, orderid: UUID):
         """Retrieve information of an order with orderid from the database"""
 
-        order = self.session.execute("""SELECT * FROM microservices.orders 
+        order = self.connection.execute("""SELECT * FROM microservices.orders 
                                         WHERE orderid = %s
                                         """ % orderid
-                                     )
+                                        )
 
         return {
             'order_id': order.one()[0],
@@ -79,39 +79,37 @@ class CassandraDatabase():
         if order is None:
             return 404
         if (order['items'] != None and (itemid in order['items'])):
-            self.session.execute("""UPDATE microservices.orders
+            self.connection.execute("""UPDATE microservices.orders
                                     SET items[%s] = %s
                                     WHERE orderid = %s
                                     """, (itemid, order['items'][itemid] + 1, orderid))
         else:
-            self.session.execute("""UPDATE microservices.orders
+            self.connection.execute("""UPDATE microservices.orders
                                    SET items[%s] = 1
                                    WHERE orderid = %s
                                    """, (itemid, orderid))
-
 
     def remove_item(self, orderid: UUID, itemid: UUID):
         """Remove item with itemid from an order with orderid"""
 
         # if order does not exist or item does not exit 404 error
         order = self.get(orderid)
-        print(order)
+
         if order is None or order['items'] is None or itemid not in order['items']:
             return 404
 
         # if item amount is 1 remove it
         if order['items'][itemid] == 1:
-            query = self.session.execute("""DELETE items[%s] FROM microservices.orders 
+            self.connection.execute("""DELETE items[%s] FROM microservices.orders 
                                             WHERE orderid = %s
                                             """, (itemid, orderid)
-                                         )
+                                    )
         else:
             # if order and item exists and item amount is > 1 decrement it by 1
-            self.session.execute("""UPDATE microservices.orders
+            self.connection.execute("""UPDATE microservices.orders
                                     SET items[%s] = %s
                                     WHERE orderid = %s
-                                    """, (itemid, order['items'][itemid], orderid))
-
+                                    """, (itemid, order['items'][itemid] - 1, orderid))
 
     def find_order(self, orderid: UUID):
         """Retrieve information of order with orderid"""
@@ -124,9 +122,9 @@ class CassandraDatabase():
             return 404
 
         # TODO: add params: paid, total_cost (get from payment service)
-        items = order['items']
         order_info['order_id'] = order['order_id']
         order_info['user_id'] = order['user_id']
+        items = order['items']
 
         if order['items'] is not None:
             for item in items:
@@ -142,7 +140,7 @@ class CassandraDatabase():
         order = self.get(orderid)
         if order is None:
             return 404
-        self.session.execute("""DELETE FROM microservices.orders 
+        self.connection.execute("""DELETE FROM microservices.orders 
                                         WHERE orderid = %s
                                         """ % orderid
-                             )
+                                )

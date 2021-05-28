@@ -44,7 +44,24 @@ For starting up cassandra container
 
 ```bash
 docker pull cassandra:3.11.10
-docker run -d --name microservices-database -p 127.0.0.1:9042:9042 cassandra:3.11.10
+docker run -d --name microservices-cassandra -p 127.0.0.1:9042:9042 cassandra:3.11.10
+
+# To check docker exec for the db (run queries from cmd line)
+docker exec -it microservices-postgres cqlsh
+
+# Then run the app.py of the ordering service
+python3 app.py
+```
+
+For postgres container
+**REQUIRES postgres to be installed on OS, linux it's libpq-dev package**
+
+```bash
+docker pull postgres:11.12
+docker run --name microservices-postgres -e POSTGRES_PASSWORD=password -p 127.0.0.1:9042:5432 postgres:11.12 
+
+# To check docker exec for the db (run queries from cmd line, username is "postgres")
+docker exec -it microservices-postgres psql -U postgres
 
 # Then run the app.py of the ordering service
 python3 app.py
