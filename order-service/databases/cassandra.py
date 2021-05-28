@@ -89,7 +89,10 @@ class CassandraDatabase():
                                    WHERE orderid = %s
                                    """, (itemid, orderid))
 
+
     def remove_item(self, orderid: UUID, itemid: UUID):
+        """Remove item with itemid from an order with orderid"""
+
         # if order does not exist or item does not exit 404 error
         order = self.get(orderid)
         print(order)
@@ -107,20 +110,30 @@ class CassandraDatabase():
             self.session.execute("""UPDATE microservices.orders
                                     SET items[%s] = %s
                                     WHERE orderid = %s
-                                    """, (itemid, order['items'][itemid] - 1, orderid))
+                                    """, (itemid, order['items'][itemid], orderid))
 
-    def find_items(self, orderid: UUID):
-        order = self.get(order)
+
+    def find_order(self, orderid: UUID):
+        """Retrieve information of order with orderid"""
+
+        order_info = {}
+        order_info['items'] = []
+        order = self.get(orderid)
+
         if order is None:
-            return 400
+            return 404
+
+        # TODO: add params: paid, total_cost (get from payment service)
         items = order['items']
-        items_dict = {}
-        key = 0
-        for item in items:
-            LOGGER.info("los item: " + str(item))
-            key += 1
-            items_dict[key] = item
-        return items_dict
+        order_info['order_id'] = order['order_id']
+        order_info['user_id'] = order['user_id']
+
+        if order['items'] is not None:
+            for item in items:
+                LOGGER.info("log item: " + str(item))
+                order_info['items'].append(item)
+
+        return order_info
 
     def delete(self, orderid: UUID):
         """Delete an order from the database"""
@@ -129,7 +142,7 @@ class CassandraDatabase():
         order = self.get(orderid)
         if order is None:
             return 404
-        query = self.session.execute("""DELETE FROM microservices.orders 
+        self.session.execute("""DELETE FROM microservices.orders 
                                         WHERE orderid = %s
                                         """ % orderid
-                                     )
+                             )

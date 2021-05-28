@@ -62,13 +62,28 @@ def remove_item(orderid: UUID, itemid: UUID):
 
 @app.route('/orders/find/<uuid:orderid>', methods=['GET'])
 def find_order(orderid: UUID):
-    LOGGER.info("Finding items from orderid %s", orderid)
+    LOGGER.info("Finding information for orderid %s", orderid)
     try:
-        if database.find_items(orderid) is not 400:
+        order = database.find_order(orderid)
+        if order != 404:
+            return order, 200
+        else:
+            return jsonify({'message': 'non-existent orderid/itemid'}), 404
+    except RuntimeError:
+        return jsonify({'message': 'failure'}), 500
+
+
+@app.route('/orders/checkout/<uuid:orderid>', methods=['POST'])
+def checkout(orderid: UUID):
+    LOGGER.info("Checking out orderid %s", orderid)
+    try:
+        # checkout logic here: call payment service and stock service
+        order # = ...
+        if order != 404:
             return jsonify({'message': 'success'}), 200
         else:
-            return jsonify({'message': 'non-existent orderid/itemid'}), 400
-    except:
+            return jsonify({'message': 'non-existent orderid/itemid'}), 404
+    except RuntimeError:
         return jsonify({'message': 'failure'}), 500
 
 
