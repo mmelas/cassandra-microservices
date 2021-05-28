@@ -77,7 +77,7 @@ class CassandraDatabase():
         # TODO: Replace with a dict inside this class to skip this get for performance
         order = self.get(orderid)
         if order is None:
-            return 400
+            return 404
         if (order['items'] != None and (itemid in order['items'])):
             self.session.execute("""UPDATE microservices.orders
                                     SET items[%s] = %s
@@ -90,11 +90,11 @@ class CassandraDatabase():
                                    """, (itemid, orderid))
 
     def remove_item(self, orderid: UUID, itemid: UUID):
-        # if order does not exist or item does not exit 400 error
+        # if order does not exist or item does not exit 404 error
         order = self.get(orderid)
         print(order)
         if order is None or order['items'] is None or itemid not in order['items']:
-            return 400
+            return 404
 
         # if item amount is 1 remove it
         if order['items'][itemid] == 1:
@@ -128,7 +128,7 @@ class CassandraDatabase():
         # TODO: Replace with a dict inside this class to skip this get for performance
         order = self.get(orderid)
         if order is None:
-            return 400
+            return 404
         query = self.session.execute("""DELETE FROM microservices.orders 
                                         WHERE orderid = %s
                                         """ % orderid
