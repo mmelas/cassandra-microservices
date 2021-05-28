@@ -62,6 +62,18 @@ def remove_item(orderid: UUID, itemid: UUID):
         return jsonify({'message': 'failure'}), 500
 
 
+@app.route('/orders/find/<uuid:orderid>', methods=['GET'])
+def find_order(orderid: UUID):
+    LOGGER.info("Finding items from orderid %s", orderid)
+    try:
+        if database.find_items(orderid) is not 400:
+            return jsonify({'message': 'success'}), 200
+        else:
+            return jsonify({'message': 'non-existent orderid/itemid'}), 400
+    except:
+        return jsonify({'message': 'failure'}), 500
+
+
 if __name__ == "__main__":
     database = CassandraDatabase()
     orderID = uuid4()

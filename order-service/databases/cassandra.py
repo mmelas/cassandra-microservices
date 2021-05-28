@@ -109,6 +109,19 @@ class CassandraDatabase():
                                     WHERE orderid = %s
                                     """, (itemid, order['items'][itemid] - 1, orderid))
 
+    def find_items(self, orderid: UUID):
+        order = self.get(order)
+        if order is None:
+            return 400
+        items = order['items']
+        items_dict = {}
+        key = 0
+        for item in items:
+            LOGGER.info("los item: " + str(item))
+            key += 1
+            items_dict[key] = item
+        return items_dict
+
     def delete(self, orderid: UUID):
         """Delete an order from the database"""
 
