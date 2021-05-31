@@ -25,7 +25,7 @@ def create_item(price: Decimal):
         database.create_item(itemid, price)
         return jsonify({'item_id': str(itemid)}), 201
     except RuntimeError:
-        return jsonify({'message': 'failure'}), 500
+        return jsonify({'message': 'failure'}), 400
 
 # http://192.168.3.13:5000/stock/add/c2b08f54-112e-4481-a83f-c6aa01c05efa/1
 @app.route('/stock/add/<uuid:itemid>/<int:number>', methods=['POST'])
@@ -37,7 +37,7 @@ def add_item(itemid: UUID, number: int):
         else:
             return jsonify({'message': 'non-existent itemid'}), 404
     except RuntimeError:
-        return jsonify({'message': 'failure'}), 500
+        return jsonify({'message': 'failure'}), 400
 
 # http://192.168.3.13:5000/stock/find/c2b08f54-112e-4481-a83f-c6aa01c05efa
 @app.route('/stock/find/<uuid:itemid>', methods=['GET'])
@@ -53,7 +53,7 @@ def find_item(itemid: UUID):
         else:
             return jsonify({'message': 'non-existent itemid'}), 404
     except RuntimeError:
-        return jsonify({'message': 'failure'}), 500
+        return jsonify({'message': 'failure'}), 400
 
 
 # http://192.168.3.13:5000/stock/subtract/c2b08f54-112e-4481-a83f-c6aa01c05efa/1
@@ -69,12 +69,12 @@ def subtract_item(itemid: UUID, number: int):
         else:
             return jsonify({'message': 'success'}), 201
     except RuntimeError:
-        return jsonify({'message': 'failure'}), 500
+        return jsonify({'message': 'failure'}), 400
 
 if __name__ == "__main__":
     # TODO: check for type of db (cassandra or postgres) then use according one
     # database = CassandraDatabase()
-    database = PostgresDatabase()
+    database = CassandraDatabase()
     # orderid = uuid4()
     # print("ORDERID: ", orderid)
     # userid = uuid4()
