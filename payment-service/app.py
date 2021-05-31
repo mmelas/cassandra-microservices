@@ -26,7 +26,7 @@ def pay_order(user_id, order_id, amount):
             database.add_payment(order_id, 0, amount)
             return jsonify({'message': 'Not enough credit'}), HTTPStatus.BAD_REQUEST
     except RuntimeError:
-        return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
+        return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @app.route('/payment/cancel/<uuid:user_id>/<uuid:order_id>', methods=['POST'])
@@ -42,7 +42,7 @@ def cancel_payment(user_id, order_id):
                 return jsonify({'message': 'User not found'}), HTTPStatus.NOT_FOUND
         return jsonify({'message': 'Payment not found'}), HTTPStatus.NOT_FOUND
     except RuntimeError:
-        return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
+        return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @app.route('/payment/status/<uuid:order_id>', methods=['GET'])
@@ -60,7 +60,7 @@ def get_status(order_id):
             else:
                 return jsonify({'message': 'Invalid status'}), HTTPStatus.BAD_REQUEST
     except RuntimeError:
-        return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
+        return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @app.route('/payment/add_funds/<uuid:user_id>/<float:amount>', methods=['POST'])
@@ -73,7 +73,7 @@ def add_funds(user_id, amount):
         else:
             return jsonify({'done': False}), HTTPStatus.BAD_REQUEST
     except RuntimeError:
-        return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
+        return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @app.route('/payment/create_user', methods=['POST'])
@@ -83,7 +83,7 @@ def create_user():
         user_id = database.create_user()
         return jsonify({'user_id': user_id}), HTTPStatus.OK
     except RuntimeError:
-        return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
+        return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @app.route('/payment/find_user/<uuid:user_id>', methods=['GET'])
@@ -96,7 +96,7 @@ def find_user(user_id):
         else:
             return jsonify({'message': 'User not found'}), HTTPStatus.NOT_FOUND
     except RuntimeError:
-        return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
+        return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 if __name__ == "__main__":
