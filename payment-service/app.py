@@ -24,7 +24,7 @@ def pay_order(user_id, order_id, amount):
             return HTTPStatus.OK
         else:
             database.add_payment(order_id, 0, amount)
-            return jsonify({'message': 'not enough credit'}), HTTPStatus.BAD_REQUEST
+            return jsonify({'message': 'Not enough credit'}), HTTPStatus.BAD_REQUEST
     except RuntimeError:
         return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
 
@@ -39,8 +39,8 @@ def cancel_payment(user_id, order_id):
             if success_add:
                 return HTTPStatus.OK
             else:
-                return jsonify({'message': 'User not found'}), HTTPStatus.BAD_REQUEST
-        return jsonify({'message': 'Payment not found'}), HTTPStatus.BAD_REQUEST
+                return jsonify({'message': 'User not found'}), HTTPStatus.NOT_FOUND
+        return jsonify({'message': 'Payment not found'}), HTTPStatus.NOT_FOUND
     except RuntimeError:
         return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
 
@@ -94,7 +94,7 @@ def find_user(user_id):
         if success:
             return jsonify({'user_id': user_id, 'credit': credit}), HTTPStatus.OK
         else:
-            return jsonify({'message': 'user not found'}), HTTPStatus.BAD_REQUEST
+            return jsonify({'message': 'User not found'}), HTTPStatus.NOT_FOUND
     except RuntimeError:
         return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
 
