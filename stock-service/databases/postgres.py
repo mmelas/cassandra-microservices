@@ -33,7 +33,7 @@ class PostgresDatabase():
 
         psycopg2.extras.register_hstore(self.connection)
         psycopg2.extras.register_uuid(self.connection)
-        LOGGER.info("Instantiating table order-service")
+        LOGGER.info("Instantiating table stock-service")
 
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS stock (
                                 itemid uuid,
