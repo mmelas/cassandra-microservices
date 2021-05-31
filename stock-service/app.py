@@ -13,7 +13,7 @@ handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(
     "%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
 LOGGER.addHandler(handler)
-app = Flask("order-service")
+app = Flask("stock-service")
 
 
 # http://192.168.3.13:5000/stock/item/create/1.0
