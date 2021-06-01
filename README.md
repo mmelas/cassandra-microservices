@@ -118,8 +118,8 @@ queries for the microservice. You can stop the service by cntrl-c in the termina
 
 #### X Exiting due to MK_USAGE: Due to networking limitations of driver docker on darwin, ingress addon is not supported'
 
-This is caused due to network limiting the docker deamon, to fix it just replace the `minikube start` in the 'startCluster.sh' script with
-'minikube start --vm=true'
+This is caused due to network limiting the docker deamon, to fix it just replace the `minikube start` in the `startCluster.sh` script with
+`minikube start --vm=true`
 
 #### 'psql: could not connect to server: Connection refused'
 
