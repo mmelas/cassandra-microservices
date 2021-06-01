@@ -23,10 +23,11 @@ class CassandraDatabase():
     def __init__(self):
         """Constructor connects to cluster and creates tables"""
 
-        # Setup the Cluster on localhost and connect to it (TODO: likely will need to pass ip in k8s later on ...)
-        self.cluster = Cluster(['127.0.0.1'], port=9042, protocol_version=3)
+        auth = PlainTextAuthProvider(username="cassandra", password="password")
+
+        self.cluster = Cluster(['cassandra'], port=9042, protocol_version=3, auth_provider=auth)
         LOGGER.info("Connecting to cluster")
-        self.connection = self.cluster.connect()
+        self.connection = self.cluster.connect() 
         LOGGER.info("Connected to cluster")
 
         LOGGER.info("Setting up keyspace: %s" % KEYSPACE)

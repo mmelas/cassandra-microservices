@@ -27,7 +27,7 @@ def create_order(userid: UUID):
 
 @app.route('/orders/remove/<uuid:orderid>', methods=['DELETE'])
 def remove_order(orderid: UUID):
-    LOGGER.info("Removing orderid %s", orderid)
+    LOGGER.info("Removing orderid %s", orderid )
     try:
         if database.delete(orderid) != 404:
             return jsonify({'message': 'success'}), 200
@@ -90,20 +90,6 @@ def checkout(orderid: UUID):
 
 if __name__ == "__main__":
     # TODO: check for type of db (cassandra or postgres) then use according one
-    # database = CassandraDatabase()
-    database = PostgresDatabase()
-    # orderid = uuid4()
-    # print("ORDERID: ", orderid)
-    # userid = uuid4()
-    # print("USERID: ", userid)
-    # itemid = uuid4()
-    # itemid2 = uuid4()
-    # database.put(orderid, itemid)
-    # print("Getting ", database.get(orderid))
-    # print("Update 1st item: ", database.update(orderid, itemid))
-    # print("Update 2nd item: ", database.update(orderid, itemid2))
-    # print("Update 2nd item again: ", database.update(orderid, itemid2))
-    # print("GET: ", database.get(orderid))
-    # print("Deleting order: ", database.delete(orderid))
-    # print("GET: ", database.get(orderid))
+    database = CassandraDatabase()
+    # database = PostgresDatabase()
     app.run(host='0.0.0.0')

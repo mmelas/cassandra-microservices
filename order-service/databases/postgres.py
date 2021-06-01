@@ -17,9 +17,7 @@ class PostgresDatabase():
     connection = cursor = None
 
     def __init__(self):
-        # Setup the Cluster on localhost and connect to it (TODO: likely will need to pass ip in k8s later on ...)
         LOGGER.info("Connecting to postgres")
-        # * Weird but specifying different port did not work, so changed docker port, but have to fix this!
         self.connection = psycopg2.connect(host="postgresql",
                                            user="postgres",
                                            port=5432,
@@ -27,7 +25,7 @@ class PostgresDatabase():
                                            password="password")
         self.connection.autocommit = True
 
-        self.cursor = self.connection.cursor()
+        self.cursor = self.connection.cursor() 
 
         # load hstore extension into current database
         self.cursor.execute("""CREATE EXTENSION IF NOT EXISTS hstore;""")

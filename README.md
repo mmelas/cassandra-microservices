@@ -125,13 +125,15 @@ You can ignore this, since the postgres-client probably has not finished setting
 Since the script can only be used once to bootstrap the k8s setup, to deploy additional configurations on k8s can be done by running
 
 ```bash
+# Make sure you are in the minikube env
+eval $(minikube docker-env)
+
 kubectl apply -f <PATH-TO-CONFIG.yaml>
 ```
 
 #### Getting container logs from k8s
 
 For debugging it can be helpful to get logs from the different containers running on k8s. This can be done by running
-
 ```bash
 # Make sure you are in the minikube env
 eval $(minikube docker-env)
@@ -141,4 +143,13 @@ docker ps
 
 # get the logs for a container
 docker logs -tf <container-id>
+```
+
+#### Complete minikube reset
+
+If all fails for unknown reasons (happens a lot), you can always fully delete the entire cluster and restart everything
+(this does take some time, especially restarting)
+
+```bash
+minikube delete
 ```
