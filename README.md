@@ -1,23 +1,17 @@
 # cassandra-microservices
 
-## For deploying the microservices
-
-**!THOROUGHLY TEST YOUR CODE, ALL CASES, ALL ERRORS, ALL POSSIBLE ERROR CODES!**
-
-Base your development on the order service, can mostly copy paste the databases, only change the tables and functions to what is needed for your service.
+## Developing the microservices (without k8s)
 
 - Need to start a database container [link](#starting-database-container), run either cassandra or postgres and specify in the app which one
 - Run the app as a python application (without docker, since it's quicker for developing)
 - For testing use [Postman](https://www.postman.com/) to submit http request with the corresponding links, and check return codes and results
 
-
-some notes for now..
-
 build the docker image for the respective microservice folder
+(replace service with the service you want to test)
 
 ```bash
 # adjust build concurrency in the dockerfile to what your system can handle
-docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:payment ./payment-service 
+docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:<service> ./<service>
 ```
 
 make sure it built
@@ -26,17 +20,11 @@ make sure it built
 docker image ls
 ```
 
-to run the image
+run the image 
 
 ```bash
-docker run -p 5000:5000 nicktehrany/wdm-cassandra-microservices:payment
-```
-
-to push image to dockerhub
-
-```bash
-docker push nicktehrany/wdm-cassandra-microservices:payment
-```
+docker run -p 5000:5000 nicktehrany/wdm-cassandra-microservices:<service>
+``` 
 
 to unset the minikube deamons (detach them from the docker deamon)
 
@@ -44,16 +32,9 @@ to unset the minikube deamons (detach them from the docker deamon)
 eval $(minikube docker-env -u)
 ```
 
+### Starting database container
 
-### Temp for order service
-
-```bash
-# adjust build concurrency in the dockerfile to what your system can handle
-docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:order ./order-service
-docker run -p 5000:5000 nicktehrany/wdm-cassandra-microservices:order
-```
-
-#### Starting Database container
+#### Cassandra
 
 For starting up cassandra container
 
@@ -71,9 +52,11 @@ docker exec -it microservices-cassandra cqlsh
 python3 app.py
 
 # [NOT RECOMMENDED FOR DEVELOPING] OR run using docker image of app (this takes longe since also need to build image)
-docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:order ./order-service
-docker run --net="host" nicktehrany/wdm-cassandra-microservices:order
+docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:<service> ./<service>
+docker run --net="host" nicktehrany/wdm-cassandra-microservices:<service>
 ```
+
+#### Postgres
 
 For postgres container
 **REQUIRES postgres to be installed on OS, linux it's libpq-dev package**
@@ -92,6 +75,70 @@ docker exec -it microservices-postgres psql -U postgres
 python3 app.py
 
 # [NOT RECOMMENDED FOR DEVELOPING] OR run using docker image of app (this takes longe since also need to build image)
-docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:order ./order-service
-docker run --net="host" nicktehrany/wdm-cassandra-microservices:order
+docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:<service> ./<service>
+docker run --net="host" nicktehrany/wdm-cassandra-microservices:<service>
+```
+
+## Deploying on local k8s with minikbue
+
+In order to deploy the services on local k8s setup with minikube, required packages are:
+
+- [minikube](https://minikube.sigs.k8s.io/docs/start/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [helm](https://helm.sh/)
+
+Then the entire cluster can be started as (**Note only run this script ONCE in the beginning**) ?
+
+```bash
+./startCluster.sh
+```
+
+The script will start minikube with all required extensions enabled, set the minikube deamon to take over the docker deamon, then builds the docker image for the service (**Note this can take several minutes**). Next it installs helm packages for the databases (cassandra & postgres), and initializes the database. The setting up of the database can take several seconds, therefore the script waits for 20 seconds for this to complete, and then starts a database client, which is used by the application to connect to the database. Lastly, the pod for the application, the service exposing it in the cluster, and the ingress for exposing it outside the cluster are created in k8s.
+
+Make sure that all the pods and services deployed correctly by running
+
+```bash
+minikube dashboard
+```
+
+### Submitting queries
+
+In order to submit queries we need to get the endpoint (IP:Port) of the service that exposes the application.
+This can be done by running 
+
+```bash
+minikube service <service>
+```
+
+which will open the service in a browser, and the link can be copied (or taken from the terminal). Paste this link into Postman to submit 
+queries for the microservice. You can stop the service by cntrl-c in the terminal, but by doing that you can no longer have access to the service.
+
+### Troubleshooting
+
+#### 'psql: could not connect to server: Connection refused'
+
+The above script (startCluster.sh) may show an error 'psql: could not connect to server: Connection refused'. 
+You can ignore this, since the postgres-client probably has not finished setting up the pod yet.
+
+#### Manually deploying k8s configurations
+
+Since the script can only be used once to bootstrap the k8s setup, to deploy additional configurations on k8s can be done by running
+
+```bash
+kubectl apply -f <PATH-TO-CONFIG.yaml>
+```
+
+#### Getting container logs from k8s
+
+For debugging it can be helpful to get logs from the different containers running on k8s. This can be done by running
+
+```bash
+# Make sure you are in the minikube env
+eval $(minikube docker-env)
+
+# list all running containers
+docker ps
+
+# get the logs for a container
+docker logs -tf <container-id>
 ```

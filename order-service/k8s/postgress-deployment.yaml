@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: order-deployment
-          image: nicktehrany/wdm-cassandra-microservices:order
+          image: nicktehrany/wdm-cassandra-microservices:order-service
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
