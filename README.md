@@ -83,7 +83,7 @@ For postgres container
 docker pull postgres:11.12
 
 # Start the downloaded postgres image
-docker run --name microservices-postgres -e POSTGRES_PASSWORD=password -p 127.0.0.1:9042:5432 
+docker run --name microservices-postgres -e POSTGRES_PASSWORD=password -p 127.0.0.1:5432:5432
 
 # To check docker exec for the db (run queries from cmd line, username is "postgres")
 docker exec -it microservices-postgres psql -U postgres
