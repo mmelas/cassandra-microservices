@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-deployment
+  labels:
+    name: order-deployment
+spec:
+  selector:
+    matchLabels:
+      app: order-deployment
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: order-deployment
+    spec:
+      containers:
+        - name: order-deployment
+          image: nicktehrany/wdm-cassandra-microservices:order
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000

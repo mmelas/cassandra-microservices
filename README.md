@@ -62,7 +62,7 @@ For starting up cassandra container
 docker pull cassandra:3.11.10
 
 # Start the downloaded cassandra image
-docker run -d --name microservices-cassandra -p 127.0.0.1:9042:9042 cassandra:3.11.10
+docker run -d --name microservices-cassandra -p 127.0.0.1:9042:9042
 
 # [CAN SKIP] To check docker exec for the db (run queries from cmd line)
 docker exec -it microservices-cassandra cqlsh
@@ -83,7 +83,7 @@ For postgres container
 docker pull postgres:11.12
 
 # Start the downloaded postgres image
-docker run --name microservices-postgres -e POSTGRES_PASSWORD=password -p 127.0.0.1:9042:5432 postgres:11.12 
+docker run --name microservices-postgres -e POSTGRES_PASSWORD=password -p 127.0.0.1:9042:5432 
 
 # To check docker exec for the db (run queries from cmd line, username is "postgres")
 docker exec -it microservices-postgres psql -U postgres

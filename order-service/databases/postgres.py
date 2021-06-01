@@ -2,6 +2,7 @@ import psycopg2
 import psycopg2.extras
 import logging
 from uuid import uuid4, UUID
+import os
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel('DEBUG')
@@ -16,13 +17,13 @@ class PostgresDatabase():
     connection = cursor = None
 
     def __init__(self):
-
         # Setup the Cluster on localhost and connect to it (TODO: likely will need to pass ip in k8s later on ...)
         LOGGER.info("Connecting to postgres")
         # * Weird but specifying different port did not work, so changed docker port, but have to fix this!
-        self.connection = psycopg2.connect(host="localhost",
+        self.connection = psycopg2.connect(host="postgresql",
                                            user="postgres",
-                                           port=9042,
+                                           port=5432,
+                                           database="order_service",
                                            password="password")
         self.connection.autocommit = True
 
