@@ -90,7 +90,8 @@ In order to deploy the services on local k8s setup with minikube, required packa
 Then the entire cluster can be started as (**Note only run this script ONCE in the beginning**) ?
 
 ```bash
-./startCluster.sh
+# With database being cassandra || postgres
+./startCluster.sh -d <database>
 ```
 
 The script will start minikube with all required extensions enabled, set the minikube deamon to take over the docker deamon, then builds the docker image for the service (**Note this can take several minutes**). Next it installs helm packages for the databases (cassandra & postgres), and initializes the database. The setting up of the database can take several seconds, therefore the script waits for 20 seconds for this to complete, and then starts a database client, which is used by the application to connect to the database. Lastly, the pod for the application, the service exposing it in the cluster, and the ingress for exposing it outside the cluster are created in k8s.
@@ -115,10 +116,27 @@ queries for the microservice. You can stop the service by cntrl-c in the termina
 
 ### Troubleshooting
 
+#### X Exiting due to MK_USAGE: Due to networking limitations of driver docker on darwin, ingress addon is not supported'
+
+This is caused due to network limiting the docker deamon, to fix it just replace the `minikube start` in the 'startCluster.sh' script with
+'minikube start --vm=true'
+
 #### 'psql: could not connect to server: Connection refused'
 
 The above script (startCluster.sh) may show an error 'psql: could not connect to server: Connection refused'. 
-You can ignore this, since the postgres-client probably has not finished setting up the pod yet.
+You can ignore this, since the postgres-client probably has not finished setting up the pod yet. Just wait for a minute or so and 
+then manually deploy the postgres client and then deploy the services with
+
+```bash
+# deploy the postgres client
+kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default \
+    --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 --env="PGPASSWORD=password" \
+    --command -- psql --host postgresql -U postgres -d postgres -p 5432 \
+    -c "create database order_service"
+
+# deploy the services for *ALL* corresponding services and provide the db to run (cassandra || postgres)
+kubectl apply -f <service>/k8s/deployment-<database>.yaml
+```
 
 #### Manually deploying k8s configurations
 
@@ -131,9 +149,12 @@ eval $(minikube docker-env)
 kubectl apply -f <PATH-TO-CONFIG.yaml>
 ```
 
-#### Getting container logs from k8s
+#### Getting logs
+
+##### Getting container logs from docker
 
 For debugging it can be helpful to get logs from the different containers running on k8s. This can be done by running
+
 ```bash
 # Make sure you are in the minikube env
 eval $(minikube docker-env)
@@ -143,6 +164,24 @@ docker ps
 
 # get the logs for a container
 docker logs -tf <container-id>
+```
+
+##### Getting logs from k8s
+
+Additionally, it can help for debugging to get the k8s logs of running pods/services/etc. by running
+
+```bash
+# get the name of the k8s pods (replace with others, e.g. service)
+kubectl get pods
+
+kubectl logs -f <pod-name>
+```
+
+#### Deleting deployments of k8s
+
+```bash
+# Type can be deployment (or pods/service/etc.) and name can be found with 'kubectl get <type>'
+kubectl delete -n default <type> <name>
 ```
 
 #### Complete minikube reset

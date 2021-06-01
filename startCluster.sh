@@ -1,24 +1,53 @@
 #!/bin/bash
 
-BLUE=$'\033[1;34m'
-RED=$'\033[1;31m'
+set -e
+BLUE='\033[1;34m'
+CLOSE='\033[0m'
+RED='\033[1;31m'
 
 if ! command -v minikube &> /dev/null; then
-    echo "{RED}minikube not installed. Exiting."
+    echo -e ""$RED"minikube not installed. Exiting."$CLOSE""
     exit 1
 elif ! command -v kubectl &> /dev/null; then
-    echo "{RED}kubectl not installed. Exiting."
-    exit 1
+    echo -e ""$RED"kubectl not installed. Exiting."$CLOSE""
+    exit 1a
 elif ! command -v helm &> /dev/null; then
-    echo "{RED}helm not installed. Exiting."
+    echo -e ""$RED"helm not installed. Exiting."$CLOSE""
     exit 1
 fi
+
+usage(){
+    printf "$0 Flags:\n\t-d: Type of database to use (cassandra | postgres)\n" 
+    exit 0
+}
+
+[ $# -ne 2 ] && usage
+DB="None"
+while getopts "d:h" opt; do
+    case ${opt} in
+        d)
+            DB=${OPTARG}
+            ;; 
+        h | *)
+            usage
+            exit 0
+            ;;
+    esac
+done
+
+case "$DB" in
+    "cassandra"|"postgres")
+        ;;
+    *)
+        usage
+        ;;
+esac
 
 # Disable minikube emojis
 export MINIKUBE_IN_STYLE=false
 
 # Setup minikube
-minikube start --memory 8192 --cpus=4
+minikube start
 eval $(minikube docker-env)
 minikube addons enable ingress
 
@@ -28,18 +57,22 @@ docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:order-serv
 # Install helm repos for different databases
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
-# helm install postgresql --set postgresqlPassword=password bitnami/postgresql
-helm install cassandra --set dbUser.password=password bitnami/cassandra
 
-echo "{BLUE}Waiting for db to startup"
+if [[ "$DB" == "postgres" ]]; then
+    helm install postgresql --set postgresqlPassword=password bitnami/postgresql
+elif [[ "$DB" == "cassandra" ]]; then
+    helm install cassandra --set dbUser.password=password bitnami/cassandra
+fi
+
+echo -e ""$BLUE"Waiting for db to startup"$CLOSE""
 # Sleep long enough for db to start, typically between 20-30s but we use 40 to be sure
 sleep 40
-                                                                                                                  
-# Setting up postgres client to be used as a stepstone to connect app to the db
-# kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default \
-#     --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 --env="PGPASSWORD=password" \
-#     --command -- psql --host postgresql -U postgres -d postgres -p 5432 \
-#     -c "create database order_service"
 
-# TODO: deploy apps for all services, rename file since all deployments use the same config
-kubectl apply -f order-service/k8s/deployment.yaml
+# TODO: deploy apps for all services
+# Setting up postgres client to be used as a stepstone to connect app to the db
+if [[ "$DB" == "postgres" ]]; then
+    kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 --env="PGPASSWORD=password" --command -- psql --host postgresql -U postgres -d postgres -p 5432 -c "create database order_service"
+    kubectl apply -f order-service/k8s/deployment-postgres.yaml
+else
+    kubectl apply -f order-service/k8s/deployment-cassandra.yaml
+fi

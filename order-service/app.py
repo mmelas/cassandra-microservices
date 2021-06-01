@@ -3,6 +3,7 @@ from databases.cassandra import CassandraDatabase
 from databases.postgres import PostgresDatabase
 import logging
 from uuid import uuid4, UUID
+import os
 
 
 LOGGER = logging.getLogger()
@@ -27,7 +28,7 @@ def create_order(userid: UUID):
 
 @app.route('/orders/remove/<uuid:orderid>', methods=['DELETE'])
 def remove_order(orderid: UUID):
-    LOGGER.info("Removing orderid %s", orderid )
+    LOGGER.info("Removing orderid %s", orderid)
     try:
         if database.delete(orderid) != 404:
             return jsonify({'message': 'success'}), 200
@@ -89,7 +90,6 @@ def checkout(orderid: UUID):
 
 
 if __name__ == "__main__":
-    # TODO: check for type of db (cassandra or postgres) then use according one
-    database = CassandraDatabase()
-    # database = PostgresDatabase()
+    DB = os.environ["DB"]
+    database = CassandraDatabase() if DB == "cassandra" else PostgresDatabase()
     app.run(host='0.0.0.0')
