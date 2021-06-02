@@ -5,6 +5,7 @@ from http import HTTPStatus
 from flask import Flask, jsonify
 from databases.cassandra import CassandraDatabase
 from databases.postgres import PostgresDatabase
+import os
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel('DEBUG')
