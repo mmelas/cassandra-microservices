@@ -87,7 +87,7 @@ In order to deploy the services on local k8s setup with minikube, required packa
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [helm](https://helm.sh/)
 
-Then the entire cluster can be started as (**Note only run this script ONCE in the beginning**) ?
+Then the entire cluster can be started as (**Note:** only run this script **ONCE** in the beginning, as it does not clean up or reset. Can only rerun it if you delete the complete cluster.)
 
 ```bash
 # With database being cassandra || postgres
