@@ -163,4 +163,4 @@ class CassandraDatabase():
         if status is None:
             return False, None
         else:
-            return True, status
+            return True, status[0]
