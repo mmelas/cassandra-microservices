@@ -177,6 +177,12 @@ kubectl get pods
 kubectl logs -f <pod-name>
 ```
 
+#### Cassandra Error: 'pod has unbound immediate PersistentVolumeClaims.'
+
+This is caused by the storage for the stateful set not having been deployed yet. Typically you can just wait a couple of
+minutes for this to go up and once it is up all other services should restart and be successfully deployed. You can watch
+the status of this by checking the cassandra logs, as explained previously, on the cassandra pod.
+
 #### Deleting deployments of k8s
 
 ```bash

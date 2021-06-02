@@ -4,6 +4,7 @@ set -e
 BLUE='\033[1;34m'
 CLOSE='\033[0m'
 RED='\033[1;31m'
+GREEN=$'\033[1;32m'
 
 if ! command -v minikube &> /dev/null; then
     echo -e ""$RED"minikube not installed. Exiting."$CLOSE""
@@ -19,6 +20,13 @@ fi
 usage(){
     printf "$0 Flags:\n\t-d: Type of database to use (cassandra | postgres)\n" 
     exit 0
+}
+
+check_db_ready() {
+    regex="\"$1-*\""
+    VALUES="$(kubectl get pods | awk '{if($1 ~ '$regex') print $0}' | awk '{print $2}' | grep -oP '\d+')"
+    READY=$(echo $VALUES | cut -f1 -d ' ')
+    DEPLOYED=$(echo $VALUES | cut -f2 -d ' ')
 }
 
 [ $# -ne 2 ] && usage
@@ -64,15 +72,26 @@ elif [[ "$DB" == "cassandra" ]]; then
     helm install cassandra --set dbUser.password=password bitnami/cassandra
 fi
 
-echo -e ""$BLUE"Waiting for db to startup"$CLOSE""
-# Sleep long enough for db to start, typically between 20-30s but we use 40 to be sure
-sleep 40
+# Check if databases are ready
+check_db_ready $DB
 
 # TODO: deploy apps for all services
 # Setting up postgres client to be used as a stepstone to connect app to the db
 if [[ "$DB" == "postgres" ]]; then
+    while [ $READY -ne $DEPLOYED ]; do
+        echo -e ""$BLUE"Waiting for postgres to startup"$CLOSE""
+        sleep 5
+        check_db_ready $DB
+    done
+    echo -e ""$GREEN"Cassandrda pod is ready!"$CLOSE""
     kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 --env="PGPASSWORD=password" --command -- psql --host postgresql -U postgres -d postgres -p 5432 -c "create database order_service"
     kubectl apply -f order-service/k8s/deployment-postgres.yaml
 else
+    while [ $READY -ne $DEPLOYED ]; do
+        echo -e ""$BLUE"Waiting for cassandra to startup"$CLOSE""
+        sleep 5
+        check_db_ready $DB
+    done
+    echo -e ""$GREEN"Postgres pod is ready!"$CLOSE""
     kubectl apply -f order-service/k8s/deployment-cassandra.yaml
 fi
