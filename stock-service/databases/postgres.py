@@ -17,7 +17,7 @@ class PostgresDatabase():
 
     def __init__(self):
 
-        # Setup the Cluster on localhost and connect to it (TODO: likely will need to pass ip in k8s later on ...)
+        # Setup the Cluster on localhost and connect to it
         LOGGER.info("Connecting to postgres")
         self.connection = psycopg2.connect(host="postgresql",
                                            user="postgres",
