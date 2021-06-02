@@ -1,4 +1,8 @@
 import logging
+from xmlrpc.client import boolean
+
+from cassandra.cqlengine.columns import Decimal
+
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
 from cassandra.policies import DCAwareRoundRobinPolicy
@@ -43,14 +47,16 @@ class CassandraDatabase():
         self.connection.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                                 user_id uuid,
-                                credit decimal
-                                PRIMARY KEY(user_id)
-                                );
+                                credit decimal,
+                                PRIMARY KEY (user_id)
+                                )""")
+        self.connection.execute("""        
                 CREATE TABLE IF NOT EXISTS payments (
                                 order_id uuid,
                                 status boolean,
-                                amount decimal
-                                );"""
+                                amount decimal,
+                                PRIMARY KEY (order_id)
+                                )"""
                                 )
 
     def create_user(self):
@@ -58,37 +64,37 @@ class CassandraDatabase():
 
         user_id = uuid4()  # TODO?: check whether uuid already in database
         self.connection.execute("""INSERT INTO microservices.users (user_id, credit)
-                            VALUES (%s, decimal(0))
-                            """, (user_id,))
+                            VALUES (%s, 0.00)
+                            """, (user_id, ))
 
         return user_id
 
-    def find_user(self, user_id):
+    def find_user(self, user_id: UUID):
         """Find user by ID in users database"""
 
         query_result = self.connection.execute("""SELECT credit FROM microservices.users
                             WHERE user_id = %s""", (user_id,))
 
-        result = query_result.fetchone()
+        result = query_result.one()
 
         if result is None:
             return False, None
         else:
             return True, result[0]
 
-    def subtract_credit(self, user_id, amount):
+    def subtract_credit(self, user_id: UUID, amount: Decimal):
         """Subtract amount from user if credit is high enough"""
 
         query_result = self.connection.execute("""SELECT credit FROM microservices.users 
                                     WHERE user_id = %s
                                     """, (user_id,))
 
-        credit = query_result.fetchone
+        credit = query_result.one()
 
         if credit is None:
             return False
 
-        new_credit = credit - amount
+        new_credit = credit[0] - amount
 
         if new_credit < 0:
             return False
@@ -96,66 +102,63 @@ class CassandraDatabase():
             self.connection.execute("""UPDATE microservices.users
                         SET credit = %s 
                         WHERE user_id = %s 
-                        IF credit = %s
-                        """, (new_credit, user_id, credit))
+                        """, (new_credit, user_id))
             return True
 
-    def add_credit(self, user_id, amount):
+    def add_credit(self, user_id: UUID, amount: Decimal):
         """Add given amount to given users credit"""
 
         query_result = self.connection.execute("""SELECT credit FROM microservices.users 
                                     WHERE user_id = %s
                                     """, (user_id,))
 
-        credit = query_result.fetchone
+        credit = query_result.one()
 
         if credit is None:
             return False
 
-        new_credit = credit + amount
+        new_credit = credit[0] + amount
 
         self.connection.execute("""UPDATE microservices.users
                         SET credit = %s 
                         WHERE user_id = %s 
-                        IF credit = %s
-                        """, (new_credit, user_id, credit))
+                        """, (new_credit, user_id))
         return True
 
-    def add_payment(self, order_id, paid, amount):
+    def add_payment(self, order_id: UUID, paid: boolean, amount: Decimal):
         """Enter new payment into payments database"""
 
         self.connection.execute("""INSERT INTO microservices.payments (order_id, status, amount)
                     VALUES(%s, %s, %s)
                     """, (order_id, paid, amount))
 
-    def cancel_payment(self, order_id):
+    def cancel_payment(self, order_id: UUID):
         """Change status of payment to unpaid (0)"""
 
         query_result = self.connection.execute("""SELECT amount FROM microservices.payments
                             WHERE order_id = %s
                             """, (order_id,))
 
-        amount = query_result.fetchone()
+        amount = query_result.one()
 
         if amount is None:
             return False, amount
 
         self.connection.execute("""UPDATE microservices.payments
-                        SET status = 0
+                        SET status = false
                         WHERE order_id = %s
-                        IF amount = %s
-                        """, (order_id, amount))
+                        """, (order_id,))
 
         return True, amount
 
-    def get_status(self, order_id):
+    def get_status(self, order_id: UUID):
         """Find payment status (0/1) for specific order ID"""
 
         query_result = self.connection.execute("""SELECT status FROM microservices.payments
                             WHERE order_id = %s
                             """, (order_id,))
 
-        status = query_result.fetchone()
+        status = query_result.one()
 
         if status is None:
             return False, None
