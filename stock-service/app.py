@@ -4,6 +4,7 @@ from flask import Flask, jsonify
 from databases.cassandra import CassandraDatabase
 from databases.postgres import PostgresDatabase
 import logging
+import os
 from uuid import uuid4, UUID
 
 
@@ -26,7 +27,7 @@ def create_item(price: Decimal):
     except RuntimeError:
         return jsonify({'message': 'failure'}), 400
 
-    
+
 @app.route('/stock/add/<uuid:itemid>/<int:number>', methods=['POST'])
 def add_item(itemid: UUID, number: int):
     LOGGER.info("Adding %s item %s", number, itemid)
@@ -38,7 +39,7 @@ def add_item(itemid: UUID, number: int):
     except RuntimeError:
         return jsonify({'message': 'failure'}), 400
 
-    
+
 @app.route('/stock/find/<uuid:itemid>', methods=['GET'])
 def find_item(itemid: UUID):
     LOGGER.info("Finding information for itemid %s", itemid)
@@ -51,7 +52,7 @@ def find_item(itemid: UUID):
             return jsonify({'message': 'non-existent itemid'}), 404
     except RuntimeError:
         return jsonify({'message': 'failure'}), 400
-    
+
 
 @app.route('/stock/subtract/<uuid:itemid>/<int:number>', methods=['POST'])
 def subtract_item(itemid: UUID, number: int):
@@ -67,7 +68,7 @@ def subtract_item(itemid: UUID, number: int):
     except RuntimeError:
         return jsonify({'message': 'failure'}), 400
 
-    
+
 if __name__ == "__main__":
     DB = os.environ["DB"]
     database = CassandraDatabase() if DB == "cassandra" else PostgresDatabase()
