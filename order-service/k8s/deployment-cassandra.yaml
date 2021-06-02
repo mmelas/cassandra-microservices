@@ -1,36 +1,39 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: payment-deployment
+  name: order-deployment
   labels:
-    name: payment-deployment
+    name: order-deployment
 spec:
   selector:
     matchLabels:
-      app: payment-deployment
+      app: order-deployment
   replicas: 1
   template:
     metadata:
       labels:
-        app: payment-deployment
+        app: order-deployment
     spec:
       containers:
-        - name: payment-deployment
-          image: nicktehrany/wdm-cassandra-microservices:payment
+        - name: order-deployment
+          image: nicktehrany/wdm-cassandra-microservices:order-service
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
-
+          env:
+            - name: DB
+              value: "cassandra"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: payment-service
+  name: order-service
   labels:
-    name: payment-service
+    name: order-service
 spec:
+  type: NodePort
   selector:
-    app: payment-deployment
+    app: order-deployment
   ports:
     - protocol: TCP
       port: 80
@@ -40,11 +43,11 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: payment-ingress
+  name: order-ingress
   labels:
-    name: payment-ingress
+    name: order-ingress
   annotations:
-    ingress.kubernetes.io/rewrite-target: /payment
+    ingress.kubernetes.io/rewrite-target: /order
 spec:
   rules:
     - http:
@@ -53,6 +56,6 @@ spec:
             path: "/"
             backend:
               service:
-                name: payment-service
+                name: order-service
                 port:
                   number: 80
