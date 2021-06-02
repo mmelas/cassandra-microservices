@@ -26,7 +26,6 @@ class CassandraDatabase():
         
         auth = PlainTextAuthProvider(username="cassandra", password="password")
         
-        # Setup the Cluster on localhost and connect to it (TODO: likely will need to pass ip in k8s later on ...)
         self.cluster = Cluster(['cassandra'], port=9042, protocol_version=3, auth_provider=auth)
         LOGGER.info("Connecting to cluster")
         self.connection = self.cluster.connect()
@@ -34,8 +33,8 @@ class CassandraDatabase():
 
         LOGGER.info("Setting up keyspace: %s" % KEYSPACE)
         self.connection.execute("""CREATE KEYSPACE IF NOT EXISTS %s
-                                WITH replication = { 'class': 'SimpleStrategy',
-                                'replication_factor': '1' }
+                                   WITH replication = { 'class': 'SimpleStrategy',
+                                   'replication_factor': '1' }
                                 """ % KEYSPACE
                                 )
 
@@ -43,16 +42,16 @@ class CassandraDatabase():
 
         LOGGER.info("Instantiating table stock-service")
         self.connection.execute("""CREATE TABLE IF NOT EXISTS stock (
-                                itemid uuid,
-                                price decimal,
-                                PRIMARY KEY (itemid)   
-                                )"""
+                                   itemid uuid,
+                                   price decimal,
+                                   PRIMARY KEY (itemid))
+                                """
                                 )
         self.connection.execute("""CREATE TABLE IF NOT EXISTS stock_counts (
                                 itemid uuid,
                                 quantity counter,
-                                PRIMARY KEY (itemid)   
-                                )"""
+                                PRIMARY KEY (itemid))
+                                """
                                 )
 
 
@@ -60,12 +59,12 @@ class CassandraDatabase():
     def create_item(self, itemid: UUID, price: Decimal):
         """Create an item with price"""
         self.connection.execute("""INSERT INTO microservices.stock (itemid,price)
-                                VALUES (%s,%s)
+                                   VALUES (%s,%s)
                                 """, (itemid, price)
                                 )
         self.connection.execute("""UPDATE microservices.stock_counts 
-                                SET quantity = quantity + 1
-                                WHERE itemid = %s
+                                   SET quantity = quantity + 1
+                                   WHERE itemid = %s
                                 """ % itemid
                                 )
 
@@ -74,17 +73,14 @@ class CassandraDatabase():
         """Retrieve information of the number of a specific item with itemid from the database"""
 
         item = self.connection.execute("""SELECT price FROM microservices.stock
-                                        WHERE itemid = %s;
-                                        """ % itemid
-                                        )
+                                          WHERE itemid = %s;
+                                       """ % itemid
+                                       )
 
         item_counts = self.connection.execute("""SELECT quantity FROM microservices.stock_counts
-                                        WHERE itemid = %s;
-                                        """ % itemid
-                                        )
-        # print("def get(): ")
-        # print(item.one())
-        # print(type(item.one()[0]))
+                                                 WHERE itemid = %s;
+                                              """ % itemid
+                                              )
         return {
             'stock': item_counts.one()[0],
             'price': item.one()[0],
@@ -99,8 +95,8 @@ class CassandraDatabase():
             return 404
         else:
             self.connection.execute("""UPDATE microservices.stock_counts
-                                    SET quantity = quantity + %s
-                                    WHERE itemid = %s
+                                       SET quantity = quantity + %s
+                                       WHERE itemid = %s
                                     """, ( number, itemid))
 
 
@@ -116,8 +112,8 @@ class CassandraDatabase():
                 return 400
             else:
                 self.connection.execute("""UPDATE microservices.stock_counts
-                                    SET quantity = quantity - %s
-                                    WHERE itemid = %s
-                                    """, ( number, itemid))
+                                           SET quantity = quantity - %s
+                                           WHERE itemid = %s
+                                        """, ( number, itemid))
 
 
