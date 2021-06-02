@@ -16,12 +16,13 @@ class PostgresDatabase():
     connection = cursor = None
 
     def __init__(self):
-        # Setup the Cluster on localhost and connect to it (TODO: likely will need to pass ip in k8s later on ...)
+        # Setup the Cluster on localhost and connect to it
         LOGGER.info("Connecting to postgres")
-        # * Weird but specifying different port did not work, so changed docker port, but have to fix this!
-        self.connection = psycopg2.connect(host="localhost",
+        
+        self.connection = psycopg2.connect(host="postgresql",
                                            user="postgres",
                                            port=5432,
+                                           database="order_service"
                                            password="password")
         self.connection.autocommit = True
 
@@ -46,7 +47,7 @@ class PostgresDatabase():
     def create_user(self):
         """Create a new entry in the users database with 0 credit"""
 
-        user_id = uuid4()  # TODO?: check whether user_id already exists in database
+        user_id = uuid4()
         self.cursor.execute("""INSERT INTO users (user_id, credit)
                             VALUES (%s, %s)
                             """, (user_id, float(0))
