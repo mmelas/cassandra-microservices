@@ -48,9 +48,8 @@ class CassandraDatabase():
                                 );
                 CREATE TABLE IF NOT EXISTS payments (
                                 order_id uuid,
-                                status NUMBER(1),
-                                amount decimal,
-                                CONSTRAINT ck_testbool_ischk CHECK (status IN (1,0))
+                                status boolean,
+                                amount decimal
                                 );"""
                                 )
 

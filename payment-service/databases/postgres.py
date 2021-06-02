@@ -21,7 +21,7 @@ class PostgresDatabase():
         # * Weird but specifying different port did not work, so changed docker port, but have to fix this!
         self.connection = psycopg2.connect(host="localhost",
                                            user="postgres",
-                                           port=9042,
+                                           port=5432,
                                            password="password")
         self.connection.autocommit = True
 
@@ -37,9 +37,8 @@ class PostgresDatabase():
                                 );
                 CREATE TABLE IF NOT EXISTS payments (
                                 order_id uuid,
-                                status NUMBER(1),
-                                amount NUMERIC(10,2),
-                                CONSTRAINT ck_testbool_ischk CHECK (status IN (1,0))
+                                status BOOLEAN,
+                                amount NUMERIC(10,2)
                                 );
                             """
                             )
@@ -49,8 +48,8 @@ class PostgresDatabase():
 
         user_id = uuid4()  # TODO?: check whether user_id already exists in database
         self.cursor.execute("""INSERT INTO users (user_id, credit)
-                            VALUES (%s, float(0))
-                            """, (user_id,)
+                            VALUES (%s, %s)
+                            """, (user_id, float(0))
                             )
 
         return user_id
@@ -58,10 +57,10 @@ class PostgresDatabase():
     def find_user(self, user_id):
         """Find user by ID in users database"""
 
-        query_result = self.cursor.execute("""SELECT credit FROM users
+        self.cursor.execute("""SELECT credit FROM users
                             WHERE user_id = %s""", (user_id,))
 
-        result = query_result.fetchone()
+        result = self.cursor.fetchone()
 
         if result is None:
             return False, None
@@ -71,14 +70,16 @@ class PostgresDatabase():
     def subtract_credit(self, user_id, amount):
         """Subtract amount from user if credit is high enough"""
 
-        query_result = self.cursor.execute("""SELECT credit FROM users 
+        self.cursor.execute("""SELECT credit FROM users 
                                     WHERE user_id = %s
                                     """, (user_id,))
 
-        credit = query_result.fetchone
+        result = self.cursor.fetchone()
 
-        if credit is None:
+        if result is None:
             return False
+
+        credit = result[0]
 
         new_credit = credit - amount
 
@@ -88,29 +89,28 @@ class PostgresDatabase():
             self.cursor.execute("""UPDATE users
                         SET credit = %s 
                         WHERE user_id = %s 
-                        IF credit = %s
-                        """, (new_credit, user_id, credit))
+                        """, (new_credit, user_id))
             return True
 
     def add_credit(self, user_id, amount):
         """Add given amount to given users credit"""
 
-        query_result = self.cursor.execute("""SELECT credit FROM users 
+        self.cursor.execute("""SELECT credit FROM users 
                                     WHERE user_id = %s
                                     """, (user_id,))
 
-        credit = query_result.fetchone
+        result = self.cursor.fetchone()
 
-        if credit is None:
+        if result is None:
             return False
 
+        credit = result[0]
         new_credit = credit + amount
 
         self.cursor.execute("""UPDATE users
                         SET credit = %s 
                         WHERE user_id = %s 
-                        IF credit = %s
-                        """, (new_credit, user_id, credit))
+                        """, (new_credit, user_id))
         return True
 
     def add_payment(self, order_id, paid, amount):
@@ -121,33 +121,32 @@ class PostgresDatabase():
                     """, (order_id, paid, amount))
 
     def cancel_payment(self, order_id):
-        """Change status of payment to unpaid (0)"""
+        """Change status of payment to unpaid"""
 
-        query_result = self.cursor.execute("""SELECT amount FROM payments
+        self.cursor.execute("""SELECT amount FROM payments
                             WHERE order_id = %s
                             """, (order_id,))
 
-        amount = query_result.fetchone()
+        amount = self.cursor.fetchone()
 
-        if amount is None:
+        if amount is not None:
+            self.cursor.execute("""UPDATE payments
+                        SET status = false
+                        WHERE order_id = %s
+                        """, (order_id,))
+
+            return True, amount
+        else:
             return False, amount
 
-        self.cursor.execute("""UPDATE payments
-                        SET status = 0
-                        WHERE order_id = %s
-                        IF amount = %s
-                        """, (order_id, amount))
-
-        return True, amount
-
     def get_status(self, order_id):
-        """Find payment status (0/1) for specific order ID"""
+        """Find payment status for specific order ID"""
 
-        query_result = self.cursor.execute("""SELECT status FROM payments
+        self.cursor.execute("""SELECT status FROM payments
                             WHERE order_id = %s
                             """, (order_id,))
 
-        status = query_result.fetchone()
+        status = self.cursor.fetchone()
 
         if status is None:
             return False, None

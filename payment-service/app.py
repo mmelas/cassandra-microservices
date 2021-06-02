@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 from http import HTTPStatus
 
 from flask import Flask, jsonify
@@ -18,15 +19,15 @@ app = Flask("payment-service")
 def pay_order(user_id, order_id, amount):
     LOGGER.info("Trying to pay order %s", order_id)
     try:
-        success = database.subtract_credit(user_id, amount)
+        success = database.subtract_credit(user_id, Decimal(amount))
         if success:
-            database.add_payment(order_id, 1, amount)
-            return HTTPStatus.OK
+            database.add_payment(order_id, True, Decimal(amount))
+            return jsonify({'message': 'Order paid'}), HTTPStatus.OK
         else:
-            database.add_payment(order_id, 0, amount)
+            database.add_payment(order_id, False, Decimal(amount))
             return jsonify({'message': 'Not enough credit'}), HTTPStatus.BAD_REQUEST
     except RuntimeError:
-        return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
 
 
 @app.route('/payment/cancel/<uuid:user_id>/<uuid:order_id>', methods=['POST'])
@@ -35,14 +36,14 @@ def cancel_payment(user_id, order_id):
     try:
         success_cancel, amount = database.cancel_payment(order_id)
         if success_cancel:
-            success_add = database.add_credit(user_id, amount)
+            success_add = database.add_credit(user_id, amount[0])
             if success_add:
-                return HTTPStatus.OK
+                return jsonify({'message': 'Order cancelled'}), HTTPStatus.OK
             else:
                 return jsonify({'message': 'User not found'}), HTTPStatus.NOT_FOUND
         return jsonify({'message': 'Payment not found'}), HTTPStatus.NOT_FOUND
     except RuntimeError:
-        return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
 
 
 @app.route('/payment/status/<uuid:order_id>', methods=['GET'])
@@ -53,27 +54,22 @@ def get_status(order_id):
         if not success:
             return jsonify({'message': 'Payment not found'}), HTTPStatus.BAD_REQUEST
         else:
-            if status == 1:
-                return jsonify({'paid': True}), HTTPStatus.OK
-            elif status == 0:
-                return jsonify({'paid': False}), HTTPStatus.OK
-            else:
-                return jsonify({'message': 'Invalid status'}), HTTPStatus.BAD_REQUEST
+            return jsonify({'paid': status}), HTTPStatus.OK
     except RuntimeError:
-        return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
 
 
 @app.route('/payment/add_funds/<uuid:user_id>/<float:amount>', methods=['POST'])
 def add_funds(user_id, amount):
     LOGGER.info("Adding %s to credit for user %s", (amount, user_id))
     try:
-        success = database.add_credit(user_id, amount)
+        success = database.add_credit(user_id, Decimal(amount))
         if success:
             return jsonify({'done': True}), HTTPStatus.OK
         else:
             return jsonify({'done': False}), HTTPStatus.BAD_REQUEST
     except RuntimeError:
-        return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
 
 
 @app.route('/payment/create_user', methods=['POST'])
@@ -83,7 +79,7 @@ def create_user():
         user_id = database.create_user()
         return jsonify({'user_id': user_id}), HTTPStatus.OK
     except RuntimeError:
-        return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
 
 
 @app.route('/payment/find_user/<uuid:user_id>', methods=['GET'])
@@ -92,12 +88,13 @@ def find_user(user_id):
     try:
         success, credit = database.find_user(user_id)
         if success:
-            return jsonify({'user_id': user_id, 'credit': credit}), HTTPStatus.OK
+            return jsonify({'user_id': user_id, 'credit': float(credit)}), HTTPStatus.OK
         else:
             return jsonify({'message': 'User not found'}), HTTPStatus.NOT_FOUND
     except RuntimeError:
-        return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify({'message': 'failure'}), HTTPStatus.BAD_REQUEST
 
 
 if __name__ == "__main__":
     database = PostgresDatabase()
+    app.run(host='0.0.0.0')
