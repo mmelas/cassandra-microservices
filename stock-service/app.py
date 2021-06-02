@@ -16,7 +16,6 @@ LOGGER.addHandler(handler)
 app = Flask("stock-service")
 
 
-# http://192.168.3.13:5000/stock/item/create/1.0
 @app.route('/stock/item/create/<float:price>', methods=['POST'])
 def create_item(price: Decimal):
     itemid = uuid4()
@@ -27,7 +26,7 @@ def create_item(price: Decimal):
     except RuntimeError:
         return jsonify({'message': 'failure'}), 400
 
-# http://192.168.3.13:5000/stock/add/c2b08f54-112e-4481-a83f-c6aa01c05efa/1
+    
 @app.route('/stock/add/<uuid:itemid>/<int:number>', methods=['POST'])
 def add_item(itemid: UUID, number: int):
     LOGGER.info("Adding %s item %s", number, itemid)
@@ -39,7 +38,7 @@ def add_item(itemid: UUID, number: int):
     except RuntimeError:
         return jsonify({'message': 'failure'}), 400
 
-# http://192.168.3.13:5000/stock/find/c2b08f54-112e-4481-a83f-c6aa01c05efa
+    
 @app.route('/stock/find/<uuid:itemid>', methods=['GET'])
 def find_item(itemid: UUID):
     LOGGER.info("Finding information for itemid %s", itemid)
@@ -52,9 +51,8 @@ def find_item(itemid: UUID):
             return jsonify({'message': 'non-existent itemid'}), 404
     except RuntimeError:
         return jsonify({'message': 'failure'}), 400
+    
 
-
-# http://192.168.3.13:5000/stock/subtract/c2b08f54-112e-4481-a83f-c6aa01c05efa/1
 @app.route('/stock/subtract/<uuid:itemid>/<int:number>', methods=['POST'])
 def subtract_item(itemid: UUID, number: int):
     LOGGER.info("Adding item %s to stock %s", number, itemid)
@@ -69,6 +67,7 @@ def subtract_item(itemid: UUID, number: int):
     except RuntimeError:
         return jsonify({'message': 'failure'}), 400
 
+    
 if __name__ == "__main__":
     DB = os.environ["DB"]
     database = CassandraDatabase() if DB == "cassandra" else PostgresDatabase()
