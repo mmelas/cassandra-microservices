@@ -45,8 +45,6 @@ def find_item(itemid: UUID):
     LOGGER.info("Finding information for itemid %s", itemid)
     try:
         item = database.get(itemid)
-        # print("item: ", item)
-        # print("type: ", type(item))
         if item != 404:
             item['price'] = simplejson.dumps(item['price'])
             return item, 200
