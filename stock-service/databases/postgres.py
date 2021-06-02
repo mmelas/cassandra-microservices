@@ -19,10 +19,10 @@ class PostgresDatabase():
 
         # Setup the Cluster on localhost and connect to it (TODO: likely will need to pass ip in k8s later on ...)
         LOGGER.info("Connecting to postgres")
-        # * Weird but specifying different port did not work, so changed docker port, but have to fix this!
-        self.connection = psycopg2.connect(host="localhost",
+        self.connection = psycopg2.connect(host="postgresql",
                                            user="postgres",
-                                           port=9042,
+                                           port=5432,
+                                           database="stock-service"
                                            password="password")
         self.connection.autocommit = True
 
