@@ -57,7 +57,7 @@ spec:
     - http:
         paths:
           - pathType: Prefix
-            path: "/"
+            path: "/payment"
             backend:
               service:
                 name: payment-service

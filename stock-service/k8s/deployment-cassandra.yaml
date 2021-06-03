@@ -57,7 +57,7 @@ spec:
     - http:
         paths:
           - pathType: Prefix
-            path: "/"
+            path: "/stock"
             backend:
               service:
                 name: stock-service
