@@ -59,9 +59,10 @@ minikube start --cpus=4
 eval $(minikube docker-env)
 minikube addons enable ingress
 
-docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:order-service ./order-service
-docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:payment-service ./payment-service
-docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:stock-service ./stock-service
+#! Pull now since it's quicker, change back when code is changed
+# docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:order-service ./order-service
+# docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:payment-service ./payment-service
+# docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:stock-service ./stock-service
 
 # Install helm repos for different databases
 helm repo add bitnami https://charts.bitnami.com/bitnami
@@ -84,7 +85,7 @@ if [[ "$DB" == "postgres" ]]; then
         sleep 5
         check_db_ready $DB
     done
-    echo -e ""$GREEN"Cassandrda pod is ready!"$CLOSE""
+    echo -e ""$GREEN"Postgres pod is ready!"$CLOSE""
     kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 --env="PGPASSWORD=password" --command -- psql --host postgresql -U postgres -d postgres -p 5432 -c "create database order_service" -c "create database payment_service" -c "create database stock_service"
     kubectl apply -f order-service/k8s/deployment-postgres.yaml
     kubectl apply -f payment-service-service/k8s/deployment-postgres.yaml
@@ -95,7 +96,7 @@ else
         sleep 5
         check_db_ready $DB
     done
-    echo -e ""$GREEN"Postgres pod is ready!"$CLOSE""
+    echo -e ""$GREEN"Cassandra pod is ready!"$CLOSE""
     kubectl apply -f order-service/k8s/deployment-cassandra.yaml
     kubectl apply -f payment-service/k8s/deployment-cassandra.yaml
     kubectl apply -f stock-service/k8s/deployment-cassandra.yaml
