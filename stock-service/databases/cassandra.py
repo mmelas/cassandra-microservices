@@ -57,11 +57,11 @@ class CassandraDatabase():
 
     def create_item(self, itemid: UUID, price: Decimal):
         """Create an item with price"""
-        self.connection.execute("""INSERT INTO microservices.stock (itemid,price)
+        self.connection.execute("""INSERT INTO stock_service.stock (itemid,price)
                                    VALUES (%s,%s)
                                 """, (itemid, price)
                                 )
-        self.connection.execute("""UPDATE microservices.stock_counts 
+        self.connection.execute("""UPDATE stock_service.stock_counts 
                                    SET quantity = quantity + 1
                                    WHERE itemid = %s
                                 """ % itemid
@@ -70,12 +70,12 @@ class CassandraDatabase():
     def get(self, itemid: UUID):
         """Retrieve information of the number of a specific item with itemid from the database"""
 
-        item = self.connection.execute("""SELECT price FROM microservices.stock
+        item = self.connection.execute("""SELECT price FROM stock_service.stock
                                           WHERE itemid = %s;
                                        """ % itemid
                                        )
 
-        item_counts = self.connection.execute("""SELECT quantity FROM microservices.stock_counts
+        item_counts = self.connection.execute("""SELECT quantity FROM stock_service.stock_counts
                                                  WHERE itemid = %s;
                                               """ % itemid
                                               )
@@ -90,7 +90,7 @@ class CassandraDatabase():
         if item is None:
             return 404
         else:
-            self.connection.execute("""UPDATE microservices.stock_counts
+            self.connection.execute("""UPDATE stock_service.stock_counts
                                        SET quantity = quantity + %s
                                        WHERE itemid = %s
                                     """, (number, itemid))
@@ -106,7 +106,7 @@ class CassandraDatabase():
                 LOGGER.info("input number is larger than the stock!")
                 return 400
             else:
-                self.connection.execute("""UPDATE microservices.stock_counts
+                self.connection.execute("""UPDATE stock_service.stock_counts
                                            SET quantity = quantity - %s
                                            WHERE itemid = %s
                                         """, (number, itemid))

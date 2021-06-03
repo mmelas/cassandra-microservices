@@ -66,7 +66,7 @@ class CassandraDatabase():
         """Create a new entry in the users database with 0 credit"""
 
         user_id = uuid4()  # TODO?: check whether uuid already in database
-        self.connection.execute("""INSERT INTO microservices.users (user_id, credit)
+        self.connection.execute("""INSERT INTO payament_service.users (user_id, credit)
                                    VALUES (%s, 0.00)
                                 """, (user_id, ))
 
@@ -76,7 +76,7 @@ class CassandraDatabase():
         """Find user by ID in users database"""
 
         query_result = self.connection.execute("""SELECT credit 
-                                                  FROM microservices.users
+                                                  FROM payament_service.users
                                                   WHERE user_id = %s
                                                """, (user_id,))
 
@@ -91,7 +91,7 @@ class CassandraDatabase():
         """Subtract amount from user if credit is high enough"""
 
         query_result = self.connection.execute("""SELECT credit 
-                                                  FROM microservices.users 
+                                                  FROM payament_service.users 
                                                   WHERE user_id = %s
                                                """, (user_id,))
 
@@ -105,7 +105,7 @@ class CassandraDatabase():
         if new_credit < 0:
             return False
         else:
-            self.connection.execute("""UPDATE microservices.users
+            self.connection.execute("""UPDATE payament_service.users
                                        SET credit = %s 
                                        WHERE user_id = %s 
                                     """, (new_credit, user_id))
@@ -115,7 +115,7 @@ class CassandraDatabase():
         """Add given amount to given users credit"""
 
         query_result = self.connection.execute("""SELECT credit 
-                                                  FROM microservices.users 
+                                                  FROM payament_service.users 
                                                   WHERE user_id = %s
                                                """, (user_id,))
 
@@ -126,7 +126,7 @@ class CassandraDatabase():
 
         new_credit = credit[0] + amount
 
-        self.connection.execute("""UPDATE microservices.users
+        self.connection.execute("""UPDATE payament_service.users
                                    SET credit = %s 
                                    WHERE user_id = %s 
                                 """, (new_credit, user_id))
@@ -135,7 +135,7 @@ class CassandraDatabase():
     def add_payment(self, order_id: UUID, paid: boolean, amount: Decimal):
         """Enter new payment into payments database"""
 
-        self.connection.execute("""INSERT INTO microservices.payments (order_id, status, amount)
+        self.connection.execute("""INSERT INTO payament_service.payments (order_id, status, amount)
                                    VALUES(%s, %s, %s)
                                 """, (order_id, paid, amount))
 
@@ -143,7 +143,7 @@ class CassandraDatabase():
         """Change status of payment to unpaid (0)"""
 
         query_result = self.connection.execute("""SELECT amount 
-                                                  FROM microservices.payments
+                                                  FROM payament_service.payments
                                                   WHERE order_id = %s
                                                """, (order_id,))
 
@@ -152,7 +152,7 @@ class CassandraDatabase():
         if amount is None:
             return False, amount
 
-        self.connection.execute("""UPDATE microservices.payments
+        self.connection.execute("""UPDATE payament_service.payments
                                    SET status = false
                                    WHERE order_id = %s
                                 """, (order_id,))
@@ -162,7 +162,7 @@ class CassandraDatabase():
     def get_status(self, order_id: UUID):
         """Find payment status (0/1) for specific order ID"""
 
-        query_result = self.connection.execute("""SELECT status FROM microservices.payments
+        query_result = self.connection.execute("""SELECT status FROM payament_service.payments
                                                   WHERE order_id = %s
                                                """, (order_id,))
 

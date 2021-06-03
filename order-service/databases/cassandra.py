@@ -11,7 +11,7 @@ handler.setFormatter(logging.Formatter(
     "%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
 LOGGER.addHandler(handler)
 
-KEYSPACE = "microservices"
+KEYSPACE = "order_service"
 
 # TODO: check if we can use async in some queries
 
@@ -40,7 +40,7 @@ class CassandraDatabase():
 
         self.connection.set_keyspace(KEYSPACE)
 
-        LOGGER.info("Instantiating table order-service")
+        LOGGER.info("Instantiating table order_service")
         self.connection.execute("""CREATE TABLE IF NOT EXISTS orders (
                                 orderid uuid,
                                 userid uuid,
@@ -53,7 +53,7 @@ class CassandraDatabase():
         """Insert an order with an orderid and a userid into the database."""
 
         # TODO: have to gen order id since we don't provide a way to get table size
-        self.connection.execute("""INSERT INTO microservices.orders (orderid, userid) 
+        self.connection.execute("""INSERT INTO order_service.orders (orderid, userid) 
                                 VALUES (%s, %s)
                                 """, (orderid, userid)
                                 )
@@ -61,7 +61,7 @@ class CassandraDatabase():
     def get(self, orderid: UUID):
         """Retrieve information of an order with orderid from the database"""
 
-        order = self.connection.execute("""SELECT * FROM microservices.orders 
+        order = self.connection.execute("""SELECT * FROM order_service.orders 
                                         WHERE orderid = %s
                                         """ % orderid
                                         )
@@ -81,12 +81,12 @@ class CassandraDatabase():
         if order is None:
             return 404
         if (order['items'] != None and (itemid in order['items'])):
-            self.connection.execute("""UPDATE microservices.orders
+            self.connection.execute("""UPDATE order_service.orders
                                     SET items[%s] = %s
                                     WHERE orderid = %s
                                     """, (itemid, order['items'][itemid] + 1, orderid))
         else:
-            self.connection.execute("""UPDATE microservices.orders
+            self.connection.execute("""UPDATE order_service.orders
                                    SET items[%s] = 1
                                    WHERE orderid = %s
                                    """, (itemid, orderid))
@@ -102,13 +102,13 @@ class CassandraDatabase():
 
         # if item amount is 1 remove it
         if order['items'][itemid] == 1:
-            self.connection.execute("""DELETE items[%s] FROM microservices.orders 
+            self.connection.execute("""DELETE items[%s] FROM order_service.orders 
                                             WHERE orderid = %s
                                             """, (itemid, orderid)
                                     )
         else:
             # if order and item exists and item amount is > 1 decrement it by 1
-            self.connection.execute("""UPDATE microservices.orders
+            self.connection.execute("""UPDATE order_service.orders
                                     SET items[%s] = %s
                                     WHERE orderid = %s
                                     """, (itemid, order['items'][itemid] - 1, orderid))
@@ -142,7 +142,7 @@ class CassandraDatabase():
         order = self.get(orderid)
         if order is None:
             return 404
-        self.connection.execute("""DELETE FROM microservices.orders 
+        self.connection.execute("""DELETE FROM order_service.orders 
                                         WHERE orderid = %s
                                         """ % orderid
                                 )
