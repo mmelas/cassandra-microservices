@@ -1,43 +1,43 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: order-deployment
+  name: stock-deployment
   labels:
-    name: order-deployment
+    name: stock-deployment
 spec:
   selector:
     matchLabels:
-      app: order-deployment
+      app: stock-deployment
   replicas: 1
   template:
     metadata:
       labels:
-        app: order-deployment
+        app: stock-deployment
     spec:
       containers:
-        - name: order-deployment
-          image: nicktehrany/wdm-cassandra-microservices:order-service
+        - name: stock-deployment
+          image: nicktehrany/wdm-cassandra-microservices:stock-service
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
           env:
             - name: DB
-              value: "cassandra"
-            - name: STOCK_SERVICE
-              value: "http://stock-service"
+              value: "postgres"
+            - name: ORDER_SERVICE
+              value: "http://order-service"
             - name: PAYMENT_SERVICE
               value: "http://payment-service"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: order-service
+  name: stock-service
   labels:
-    name: order-service
+    name: stock-service
 spec:
   type: NodePort
   selector:
-    app: order-deployment
+    app: stock-deployment
   ports:
     - protocol: TCP
       port: 80
@@ -47,19 +47,19 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: order-ingress
+  name: stock-ingress
   labels:
-    name: order-ingress
+    name: stock-ingress
   annotations:
-    ingress.kubernetes.io/rewrite-target: /order
+    ingress.kubernetes.io/rewrite-target: /stock
 spec:
   rules:
     - http:
         paths:
           - pathType: Prefix
-            path: "/"
+            path: "/stock"
             backend:
               service:
-                name: order-service
+                name: stock-service
                 port:
                   number: 80

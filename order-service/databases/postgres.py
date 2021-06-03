@@ -2,6 +2,7 @@ import psycopg2
 import psycopg2.extras
 import logging
 from uuid import uuid4, UUID
+import os
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel('DEBUG')
@@ -16,140 +17,132 @@ class PostgresDatabase():
     connection = cursor = None
 
     def __init__(self):
-        # Setup the Cluster on localhost and connect to it
         LOGGER.info("Connecting to postgres")
-        
         self.connection = psycopg2.connect(host="postgresql",
                                            user="postgres",
                                            port=5432,
-                                           database="order_service"
+                                           database="order_service",
                                            password="password")
         self.connection.autocommit = True
 
         self.cursor = self.connection.cursor()
 
-        psycopg2.extras.register_uuid(self.connection)
-        LOGGER.info("Instantiating table payment-service")
+        # load hstore extension into current database
+        self.cursor.execute("""CREATE EXTENSION IF NOT EXISTS hstore;""")
 
-        self.cursor.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                                user_id uuid PRIMARY KEY,
-                                credit NUMERIC(10,2)
-                                );
-                CREATE TABLE IF NOT EXISTS payments (
-                                order_id uuid,
-                                status BOOLEAN,
-                                amount NUMERIC(10,2)
-                                );
+        psycopg2.extras.register_hstore(self.connection)
+        psycopg2.extras.register_uuid(self.connection)
+        LOGGER.info("Instantiating table order-service")
+
+        self.cursor.execute("""CREATE TABLE IF NOT EXISTS orders (
+                                orderid uuid PRIMARY KEY,
+                                userid uuid,
+                                items hstore
+                                )
                             """
                             )
 
-    def create_user(self):
-        """Create a new entry in the users database with 0 credit"""
+    def put(self, orderid: UUID, userid: UUID):
+        """Insert an order with an orderid and a userid into the database."""
 
-        user_id = uuid4()
-        self.cursor.execute("""INSERT INTO users (user_id, credit)
-                            VALUES (%s, %s)
-                            """, (user_id, float(0))
+        # TODO: have to gen order id since we don't provide a way to get table size
+        self.cursor.execute("""INSERT INTO orders (orderid, userid)
+                               VALUES (%s, %s)
+                            """, (orderid, userid)
                             )
 
-        return user_id
+    def get(self, orderid: UUID):
+        """Retrieve information of an order with orderid from the database"""
 
-    def find_user(self, user_id):
-        """Find user by ID in users database"""
+        self.cursor.execute("""SELECT * FROM orders 
+                                WHERE orderid = %s
+                                """, (orderid,)
+                            )
 
-        self.cursor.execute("""SELECT credit FROM users
-                            WHERE user_id = %s""", (user_id,))
+        order = self.cursor.fetchone()
+        return {
+            'order_id': order[0],
+            'user_id': order[1],
+            # ? Maybe have to loop over items to convert map to json? also maybe don't always need the items so might be better to only do this when we need it.
+            'items': order[2]
+        } if order != None else None
 
-        result = self.cursor.fetchone()
+    def update(self, orderid: UUID, itemid: UUID):
+        """Add items to an existing order"""
 
-        if result is None:
-            return False, None
+        # TODO: Replace with a dict inside this class to skip this get for performance
+        order = self.get(orderid)
+        if order is None:
+            return 404
+
+        if order['items'] == None:
+            self.cursor.execute("""UPDATE orders
+                                   SET items = hstore(%s::text, 1::text) 
+                                   WHERE orderid = %s
+                                   """, (itemid, orderid))
+        elif str(itemid) in order['items']:
+            self.cursor.execute("""UPDATE orders
+                                    SET items = items || hstore(%s::text, %s::text)
+                                    WHERE orderid = %s
+                                    """, (itemid, int(order['items'][str(itemid)]) + 1, orderid))
         else:
-            return True, result[0]
+            self.cursor.execute("""UPDATE orders
+                                   SET items = items || hstore(%s::text, 1::text) 
+                                   WHERE orderid = %s
+                                   """, (itemid, orderid))
 
-    def subtract_credit(self, user_id, amount):
-        """Subtract amount from user if credit is high enough"""
+    def remove_item(self, orderid: UUID, itemid: UUID):
+        """Remove item with itemid from an order with orderid"""
 
-        self.cursor.execute("""SELECT credit FROM users 
-                                    WHERE user_id = %s
-                                    """, (user_id,))
+        # if order does not exist or item does not exit 404 error
+        order = self.get(orderid)
+        if order is None or order['items'] is None or str(itemid) not in order['items']:
+            return 404
 
-        result = self.cursor.fetchone()
-
-        if result is None:
-            return False
-
-        credit = result[0]
-
-        new_credit = credit - amount
-
-        if new_credit < 0:
-            return False
+        # if item amount is 1 remove it
+        if order['items'][str(itemid)] == '1':
+            self.cursor.execute("""UPDATE orders
+                                    SET items = delete(items, %s::text)
+                                    WHERE orderid = %s
+                                    """, (itemid, orderid)
+                                )
         else:
-            self.cursor.execute("""UPDATE users
-                        SET credit = %s 
-                        WHERE user_id = %s 
-                        """, (new_credit, user_id))
-            return True
+            # if order and item exists and item amount is > 1 decrement it by 1
+            self.cursor.execute("""UPDATE orders
+                                    SET items = items || hstore(%s::text, %s::text)
+                                    WHERE orderid = %s
+                                    """, (itemid, int(order['items'][str(itemid)]) - 1, orderid))
 
-    def add_credit(self, user_id, amount):
-        """Add given amount to given users credit"""
+    def find_order(self, orderid: UUID):
+        """Retrieve information of order with orderid"""
 
-        self.cursor.execute("""SELECT credit FROM users 
-                                    WHERE user_id = %s
-                                    """, (user_id,))
+        order_info = {}
+        order_info['items'] = []
+        order = self.get(orderid)
 
-        result = self.cursor.fetchone()
+        if order is None:
+            return 404
 
-        if result is None:
-            return False
+        # TODO: add params: paid, total_cost (get from payment service)
+        order_info['order_id'] = order['order_id']
+        order_info['user_id'] = order['user_id']
+        items = order['items']
 
-        credit = result[0]
-        new_credit = credit + amount
+        if order['items'] is not None:
+            for item in items:
+                LOGGER.info("log item: " + item)
+                order_info['items'].append(item)
 
-        self.cursor.execute("""UPDATE users
-                        SET credit = %s 
-                        WHERE user_id = %s 
-                        """, (new_credit, user_id))
-        return True
+        return order_info
 
-    def add_payment(self, order_id, paid, amount):
-        """Enter new payment into payments database"""
+    def delete(self, orderid: UUID):
+        """Delete an order from the database"""
 
-        self.cursor.execute("""INSERT INTO payments (order_id, status, amount)
-                    VALUES(%s, %s, %s)
-                    """, (order_id, paid, amount))
-
-    def cancel_payment(self, order_id):
-        """Change status of payment to unpaid"""
-
-        self.cursor.execute("""SELECT amount FROM payments
-                            WHERE order_id = %s
-                            """, (order_id,))
-
-        amount = self.cursor.fetchone()
-
-        if amount is not None:
-            self.cursor.execute("""UPDATE payments
-                        SET status = false
-                        WHERE order_id = %s
-                        """, (order_id,))
-
-            return True, amount
-        else:
-            return False, amount
-
-    def get_status(self, order_id):
-        """Find payment status for specific order ID"""
-
-        self.cursor.execute("""SELECT status FROM payments
-                            WHERE order_id = %s
-                            """, (order_id,))
-
-        status = self.cursor.fetchone()
-
-        if status is None:
-            return False, None
-        else:
-            return True, status
+        # TODO: Replace with a dict inside this class to skip this get for performance
+        order = self.get(orderid)
+        if order is None:
+            return 404
+        self.cursor.execute("""DELETE FROM orders
+                                WHERE orderid = %s
+                            """, (orderid,)
+                            )

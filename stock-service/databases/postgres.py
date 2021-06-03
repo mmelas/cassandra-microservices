@@ -22,12 +22,12 @@ class PostgresDatabase():
         self.connection = psycopg2.connect(host="postgresql",
                                            user="postgres",
                                            port=5432,
-                                           database="stock-service"
+                                           database="stock_service",
                                            password="password")
         self.connection.autocommit = True
 
         self.cursor = self.connection.cursor()
-        
+
         psycopg2.extras.register_uuid(self.connection)
         LOGGER.info("Instantiating table stock-service")
 
@@ -45,8 +45,7 @@ class PostgresDatabase():
         self.cursor.execute("""INSERT INTO stock (itemid,price,quantity)
                                 VALUES (%s,%s,1)
                                 """, (itemid, price)
-                                )
-
+                            )
 
     def get(self, itemid: UUID):
         """Retrieve information of the number of a specific item with itemid from the database"""
@@ -54,14 +53,12 @@ class PostgresDatabase():
         self.cursor.execute("""SELECT price,quantity FROM stock
                                         WHERE itemid = %s
                                         """, (itemid,)
-                                        )
+                            )
         item = self.cursor.fetchone()
         return {
             'stock': item[1],
             'price': item[0],
         } if item != None else None
-
-
 
     def add_item(self, itemid: UUID, number: int):
         """Add items to the stock"""
@@ -72,8 +69,7 @@ class PostgresDatabase():
             self.cursor.execute("""UPDATE stock
                                     SET quantity = quantity + %s
                                     WHERE itemid = %s
-                                    """, ( number, itemid))
-
+                                    """, (number, itemid))
 
     def subtract_item(self, itemid: UUID, number: int):
         """Subtract items from the stock"""
@@ -89,6 +85,4 @@ class PostgresDatabase():
                 self.cursor.execute("""UPDATE stock
                                         SET quantity = quantity - %s
                                         WHERE itemid = %s
-                                        """, ( number, itemid))
-
-
+                                        """, (number, itemid))

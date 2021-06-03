@@ -15,7 +15,7 @@ handler.setFormatter(logging.Formatter(
     "%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
 LOGGER.addHandler(handler)
 
-KEYSPACE = "microservices"
+KEYSPACE = "payament_service"
 
 
 # TODO: check if we can use async in some queries

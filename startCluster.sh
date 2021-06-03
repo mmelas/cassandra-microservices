@@ -55,12 +55,13 @@ esac
 export MINIKUBE_IN_STYLE=false
 
 # Setup minikube
-minikube start
+minikube start --cpus=4
 eval $(minikube docker-env)
 minikube addons enable ingress
 
-# TODO: build all containers for all microservices and start minikube with the right configs
 docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:order-service ./order-service
+docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:payment-service ./payment-service
+docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:stock-service ./stock-service
 
 # Install helm repos for different databases
 helm repo add bitnami https://charts.bitnami.com/bitnami
@@ -84,8 +85,10 @@ if [[ "$DB" == "postgres" ]]; then
         check_db_ready $DB
     done
     echo -e ""$GREEN"Cassandrda pod is ready!"$CLOSE""
-    kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 --env="PGPASSWORD=password" --command -- psql --host postgresql -U postgres -d postgres -p 5432 -c "create database order_service"
+    kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 --env="PGPASSWORD=password" --command -- psql --host postgresql -U postgres -d postgres -p 5432 -c "create database order_service" -c "create database payment_service" -c "create database stock_service"
     kubectl apply -f order-service/k8s/deployment-postgres.yaml
+    kubectl apply -f payment-service-service/k8s/deployment-postgres.yaml
+    kubectl apply -f stock-service/k8s/deployment-postgres.yaml
 else
     while [ $READY -ne $DEPLOYED ]; do
         echo -e ""$BLUE"Waiting for cassandra to startup"$CLOSE""
@@ -94,4 +97,6 @@ else
     done
     echo -e ""$GREEN"Postgres pod is ready!"$CLOSE""
     kubectl apply -f order-service/k8s/deployment-cassandra.yaml
+    kubectl apply -f payment-service/k8s/deployment-cassandra.yaml
+    kubectl apply -f stock-service/k8s/deployment-cassandra.yaml
 fi
