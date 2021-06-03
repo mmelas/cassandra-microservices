@@ -22,7 +22,7 @@ class PostgresDatabase():
         self.connection = psycopg2.connect(host="postgresql",
                                            user="postgres",
                                            port=5432,
-                                           database="order_service",
+                                           database="payment_service",
                                            password="password")
         self.connection.autocommit = True
 

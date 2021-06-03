@@ -12,7 +12,7 @@ handler.setFormatter(logging.Formatter(
     "%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
 LOGGER.addHandler(handler)
 
-KEYSPACE = "microservices"
+KEYSPACE = "stock_service"
 
 # TODO: check if we can use async in some queries
 
@@ -23,10 +23,11 @@ class CassandraDatabase():
 
     def __init__(self):
         """Constructor connects to cluster and creates tables"""
-        
+
         auth = PlainTextAuthProvider(username="cassandra", password="password")
-        
-        self.cluster = Cluster(['cassandra'], port=9042, protocol_version=3, auth_provider=auth)
+
+        self.cluster = Cluster(['cassandra'], port=9042,
+                               protocol_version=3, auth_provider=auth)
         LOGGER.info("Connecting to cluster")
         self.connection = self.cluster.connect()
         LOGGER.info("Connected to cluster")
@@ -54,8 +55,6 @@ class CassandraDatabase():
                                 """
                                 )
 
-
-
     def create_item(self, itemid: UUID, price: Decimal):
         """Create an item with price"""
         self.connection.execute("""INSERT INTO microservices.stock (itemid,price)
@@ -67,7 +66,6 @@ class CassandraDatabase():
                                    WHERE itemid = %s
                                 """ % itemid
                                 )
-
 
     def get(self, itemid: UUID):
         """Retrieve information of the number of a specific item with itemid from the database"""
@@ -86,8 +84,6 @@ class CassandraDatabase():
             'price': item.one()[0],
         } if item.one() != None else None
 
-
-
     def add_item(self, itemid: UUID, number: int):
         """Add items to the stock"""
         item = self.get(itemid)
@@ -97,8 +93,7 @@ class CassandraDatabase():
             self.connection.execute("""UPDATE microservices.stock_counts
                                        SET quantity = quantity + %s
                                        WHERE itemid = %s
-                                    """, ( number, itemid))
-
+                                    """, (number, itemid))
 
     def subtract_item(self, itemid: UUID, number: int):
         """Subtract items from the stock"""
@@ -114,6 +109,4 @@ class CassandraDatabase():
                 self.connection.execute("""UPDATE microservices.stock_counts
                                            SET quantity = quantity - %s
                                            WHERE itemid = %s
-                                        """, ( number, itemid))
-
-
+                                        """, (number, itemid))

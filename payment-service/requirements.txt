@@ -1,0 +1,11 @@
+Flask==2.0.1
+wheel==0.36.2
+Jinja2==3.0.1
+MarkupSafe==2.0.1
+Werkzeug==2.0.1
+click==8.0.1
+geomet==0.2.1.post1
+itsdangerous==2.0.1
+six==1.16.0
+simplejson==3.17.0
+psycopg2==2.8.6

@@ -23,6 +23,10 @@ spec:
           env:
             - name: DB
               value: "postgres"
+            - name: STOCK_SERVICE
+              value: "http://stock-service"
+            - name: PAYMENT_SERVICE
+              value: "http://payment-service"
 ---
 apiVersion: v1
 kind: Service
@@ -53,7 +57,7 @@ spec:
     - http:
         paths:
           - pathType: Prefix
-            path: "/"
+            path: "/order"
             backend:
               service:
                 name: order-service
