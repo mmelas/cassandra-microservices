@@ -25,7 +25,7 @@ def create_item(price: Decimal):
         database.create_item(itemid, price)
         return jsonify({'item_id': str(itemid)}), 201
     except RuntimeError:
-        return jsonify({'message': 'failure'}), 400
+        return jsonify({'message': 'failure'}), 500
 
 
 @app.route('/stock/add/<uuid:itemid>/<int:number>', methods=['POST'])
@@ -37,7 +37,7 @@ def add_item(itemid: UUID, number: int):
         else:
             return jsonify({'message': 'non-existent itemid'}), 404
     except RuntimeError:
-        return jsonify({'message': 'failure'}), 400
+        return jsonify({'message': 'failure'}), 500
 
 
 @app.route('/stock/find/<uuid:itemid>', methods=['GET'])
@@ -45,13 +45,13 @@ def find_item(itemid: UUID):
     LOGGER.info("Finding information for itemid %s", itemid)
     try:
         item = database.get(itemid)
-        if item != 404:
+        if item != None:
             item['price'] = simplejson.dumps(item['price'])
             return item, 200
         else:
             return jsonify({'message': 'non-existent itemid'}), 404
     except RuntimeError:
-        return jsonify({'message': 'failure'}), 400
+        return jsonify({'message': 'failure'}), 500
 
 
 @app.route('/stock/subtract/<uuid:itemid>/<int:number>', methods=['POST'])
@@ -66,7 +66,7 @@ def subtract_item(itemid: UUID, number: int):
         else:
             return jsonify({'message': 'success'}), 201
     except RuntimeError:
-        return jsonify({'message': 'failure'}), 400
+        return jsonify({'message': 'failure'}), 500
 
 
 if __name__ == "__main__":

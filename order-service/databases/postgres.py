@@ -117,13 +117,12 @@ class PostgresDatabase():
         """Retrieve information of order with orderid"""
 
         order_info = {}
-        order_info['items'] = []
         order = self.get(orderid)
+        order_info['items'] = [{}]
 
         if order is None:
             return 404
 
-        # TODO: add params: paid, total_cost (get from payment service)
         order_info['order_id'] = order['order_id']
         order_info['user_id'] = order['user_id']
         items = order['items']
@@ -131,7 +130,8 @@ class PostgresDatabase():
         if order['items'] is not None:
             for item in items:
                 LOGGER.info("log item: " + item)
-                order_info['items'].append(item)
+                amount = order['items'][item]
+                order_info['items'][0][item] = amount
 
         return order_info
 
