@@ -41,7 +41,7 @@ def remove_order(orderid: UUID):
         return jsonify({'message': 'failure'}), 500
 
 
-@app.route('/orders/add_item/<uuid:orderid>/<uuid:itemid>', methods=['POST'])
+@app.route('/orders/addItem/<uuid:orderid>/<uuid:itemid>', methods=['POST'])
 def add_item(orderid: UUID, itemid: UUID):
     LOGGER.info("Adding item %s to orderid %s", itemid, orderid)
     try:
@@ -53,7 +53,7 @@ def add_item(orderid: UUID, itemid: UUID):
         return jsonify({'message': 'failure'}), 500
 
 
-@app.route('/orders/remove_item/<uuid:orderid>/<uuid:itemid>', methods=['DELETE'])
+@app.route('/orders/removeItem/<uuid:orderid>/<uuid:itemid>', methods=['DELETE'])
 def remove_item(orderid: UUID, itemid: UUID):
     LOGGER.info("Removing item %s from orderid %s", itemid, orderid)
     try:
@@ -113,7 +113,7 @@ def checkout(orderid: UUID):
 
     # check all return codes are good
     if (
-        payment.status_code == order_code == 200 and stock.status_code == 201 and 
+        payment.status_code == order_code == 200 and stock.status_code == 201 and
         stock.json()['message'] == 'success'
     ):
         return jsonify({'message': 'success'}), 200
