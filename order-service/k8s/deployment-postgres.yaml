@@ -51,13 +51,13 @@ metadata:
   labels:
     name: order-ingress
   annotations:
-    ingress.kubernetes.io/rewrite-target: /order
+    ingress.kubernetes.io/rewrite-target: /orders
 spec:
   rules:
     - http:
         paths:
           - pathType: Prefix
-            path: "/order"
+            path: "/orders"
             backend:
               service:
                 name: order-service
