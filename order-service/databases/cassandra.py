@@ -124,7 +124,7 @@ class CassandraDatabase():
 
         if order['items'] is not None:
             for item in items:
-                LOGGER.info("log item: " + item)
+                LOGGER.info("log item: " + str(item))
                 amount = order['items'][item]
                 order_info['items'][0][item] = amount
 

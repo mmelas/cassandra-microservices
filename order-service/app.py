@@ -15,8 +15,6 @@ handler.setFormatter(logging.Formatter(
 LOGGER.addHandler(handler)
 app = Flask("order-service")
 
-# TODO: ADD CHECKS to see if USERS/ITEMS etc exist in the other databases
-
 
 @app.route('/orders/create/<uuid:userid>', methods=['POST'])
 def create_order(userid: UUID):
@@ -69,7 +67,6 @@ def remove_item(orderid: UUID, itemid: UUID):
 def find_order(orderid: UUID):
     LOGGER.info("Finding information for orderid %s", orderid)
     try:
-        # TODO: Check if adding totalcost in the payment table
         # improves the performance in benchmarks
         order = database.find_order(orderid)
         if order == 404:
@@ -77,6 +74,7 @@ def find_order(orderid: UUID):
         total_cost = 0
         items = order['items'][0]
         for item, amount in items.items():
+            # ! Returns 404 when item doesn't exist then can't index, but how can it be 404 if item is in db order already?
             stock_item = requests.get(f"{STOCK_SERVICE_URL}/stock/find/{item}")
             total_cost += int(amount) * float(stock_item.json()['price'])
         order['total_cost'] = total_cost
@@ -100,7 +98,7 @@ def checkout(orderid: UUID):
     if order_code == 404:
         return jsonify({'message': 'non-existent orderid'}), 404
     if order_code == 500:
-        return jsonify({'message': 'non-existent orderid'}), 500
+        return jsonify({'message': 'failure'}), 500
 
     if not order_result['paid']:
         # make payment
@@ -109,14 +107,16 @@ def checkout(orderid: UUID):
         LOGGER.info(payment.status_code)
         if payment.status_code == 200:
             # TODO FIX not only use last stock_code
-            stock = requests.post(f"{STOCK_SERVICE_URL}/stock/subtract/multiple", json=order_result['items'][0])
+            stock = requests.post(
+                f"{STOCK_SERVICE_URL}/stock/subtract/multiple", json=order_result['items'][0])
             if stock.status_code == 201:
                 return jsonify({'message': 'success'}), 200
             else:
                 payment = requests.post(
                     f"{PAYMENT_SERVICE_URL}/payment/cancel/{order_result['user_id']}/{orderid}")
                 if payment.status_code != 200:
-                    LOGGER.error(f'Canceling of payment with order id {orderid} failed')
+                    LOGGER.error(
+                        f'Canceling of payment with order id {orderid} failed')
                 return jsonify({'message': 'Stock subtraction failed'}), 404
         else:
             return jsonify({'message': 'Payment failed'}), 404
