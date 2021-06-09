@@ -86,6 +86,6 @@ def subtract_item(itemid: UUID, number: int):
 
 
 if __name__ == "__main__":
-    # DB = os.environ["DB"]
-    database = CassandraDatabase() # if DB == "cassandra" else PostgresDatabase()
+    DB = os.environ["DB"]
+    database = CassandraDatabase() if DB == "cassandra" else PostgresDatabase()
     app.run(host='0.0.0.0')

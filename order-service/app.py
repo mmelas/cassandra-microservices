@@ -102,29 +102,26 @@ def checkout(orderid: UUID):
     if order_code == 500:
         return jsonify({'message': 'non-existent orderid'}), 500
 
-    # make payment
-    payment = requests.post(
-        f"{PAYMENT_SERVICE_URL}/payment/pay/{order_result['user_id']}/{orderid}/{order_result['total_cost']}")
-
-    # checkout stock for each item # TODO FIX not only use last stock_code
-    for item, amount in order_result['items'][0].items():
-        stock = requests.post(
-            f"{STOCK_SERVICE_URL}/stock/subtract/{item}/{amount}")
-
-    # check all return codes are good
-    if (
-        payment.status_code == order_code == 200 and stock.status_code == 201 and
-        stock.json()['message'] == 'success'
-    ):
-        return jsonify({'message': 'success'}), 200
+    if not order_result['paid']:
+        # make payment
+        payment = requests.post(
+            f"{PAYMENT_SERVICE_URL}/payment/pay/{order_result['user_id']}/{orderid}/{order_result['total_cost']}")
+        LOGGER.info(payment.status_code)
+        if payment.status_code == 200:
+            # TODO FIX not only use last stock_code
+            stock = requests.post(f"{STOCK_SERVICE_URL}/stock/subtract/multiple", json=order_result['items'][0])
+            if stock.status_code == 201:
+                return jsonify({'message': 'success'}), 200
+            else:
+                payment = requests.post(
+                    f"{PAYMENT_SERVICE_URL}/payment/cancel/{order_result['user_id']}/{orderid}")
+                if payment.status_code != 200:
+                    LOGGER.error(f'Canceling of payment with order id {orderid} failed')
+                return jsonify({'message': 'Stock subtraction failed'}), 404
+        else:
+            return jsonify({'message': 'Payment failed'}), 404
     else:
-        # if not cancel payment and add back stock
-        # TODO add all edge cases lmao
-
-        # TODO check return code is valid of canceled payment
-        payment_cancel = requests.post(
-            f"{PAYMENT_SERVICE_URL}/payment/cancel/{order_result['user_id']}/{orderid}")
-        return jsonify({'message': 'failure'}), 404
+        return jsonify({'message': 'Order already paid'}), 404
 
 
 if __name__ == "__main__":
