@@ -17,9 +17,6 @@ LOGGER.addHandler(handler)
 KEYSPACE = "stock_service"
 
 
-# TODO: check if we can use async in some queries
-
-
 class CassandraDatabase():
     """Cassandra database class instance"""
     cluster = connection = None
@@ -29,7 +26,7 @@ class CassandraDatabase():
 
         auth = PlainTextAuthProvider(username="cassandra", password="password")
 
-        self.cluster = Cluster(['127.0.0.1'], port=9042,
+        self.cluster = Cluster(['cassandra'], port=9042,
                                protocol_version=3, auth_provider=auth)
         LOGGER.info("Connecting to cluster")
         self.connection = self.cluster.connect()
@@ -87,7 +84,8 @@ class CassandraDatabase():
         } if item.one() != None else None
 
     def get_all(self):
-        item_counts = self.connection.execute(SimpleStatement("SELECT itemid FROM stock_service.stock"))
+        item_counts = self.connection.execute(
+            SimpleStatement("SELECT itemid FROM stock_service.stock"))
         return item_counts.all()
 
     def get_ids(self, ids):
@@ -140,7 +138,8 @@ class CassandraDatabase():
             if item not in idWithQuanties or idWithQuanties[item] - int(items[item]) < 0:
                 return 400
             uuid = UUID(item)
-            batch.add(SimpleStatement(update_statement), (int(items[item]), uuid))
+            batch.add(SimpleStatement(update_statement),
+                      (int(items[item]), uuid))
 
         try:
             self.connection.execute(batch)

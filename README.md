@@ -90,8 +90,8 @@ In order to deploy the services on local k8s setup with minikube, required packa
 Then the entire cluster can be started as (**Note:** only run this script **ONCE** in the beginning, as it does not clean up or reset. Can only rerun it if you delete the complete cluster.)
 
 ```bash
-# With database being cassandra || postgres
-./startCluster.sh -d <database>
+# With database being cassandra || postgres and -b for building images (takes longer) or pulling from Dockerhub
+./startCluster.sh -d <database> [-b]
 ```
 
 The script will start minikube with all required extensions enabled, set the minikube deamon to take over the docker deamon, then builds the docker image for the service (**Note this can take several minutes**). Next it installs helm packages for the databases (cassandra & postgres), and initializes the database. The setting up of the database can take several seconds, therefore the script waits for 20 seconds for this to complete, and then starts a database client, which is used by the application to connect to the database. Lastly, the pod for the application, the service exposing it in the cluster, and the ingress for exposing it outside the cluster are created in k8s.

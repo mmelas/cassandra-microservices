@@ -13,8 +13,6 @@ LOGGER.addHandler(handler)
 
 KEYSPACE = "order_service"
 
-# TODO: check if we can use async in some queries
-
 
 class CassandraDatabase():
     """Cassandra database class instance"""
@@ -52,7 +50,6 @@ class CassandraDatabase():
     def put(self, orderid: UUID, userid: UUID):
         """Insert an order with an orderid and a userid into the database."""
 
-        # TODO: have to gen order id since we don't provide a way to get table size
         self.connection.execute("""INSERT INTO order_service.orders (orderid, userid) 
                                 VALUES (%s, %s)
                                 """, (orderid, userid)
@@ -69,14 +66,12 @@ class CassandraDatabase():
         return {
             'order_id': order.one()[0],
             'user_id': order.one()[2],
-            # ? Maybe have to loop over items to convert map to json? also maybe don't always need the items so might be better to only do this when we need it.
             'items': order.one()[1]
         } if order.one() != None else None
 
     def update(self, orderid: UUID, itemid: UUID):
         """Add items to an existing order"""
 
-        # TODO: Replace with a dict inside this class to skip this get for performance
         order = self.get(orderid)
         if order is None:
             return 404
@@ -138,7 +133,6 @@ class CassandraDatabase():
     def delete(self, orderid: UUID):
         """Delete an order from the database"""
 
-        # TODO: Replace with a dict inside this class to skip this get for performance
         order = self.get(orderid)
         if order is None:
             return 404

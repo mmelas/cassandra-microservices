@@ -53,7 +53,7 @@ def get_status(order_id):
     try:
         success, status = database.get_status(order_id)
         if not success:
-            return jsonify({'message': 'Payment not found'}), HTTPStatus.BAD_REQUEST
+            return jsonify({'message': 'Payment not found'}), HTTPStatus.NOT_FOUND
         else:
             return jsonify({'paid': status}), HTTPStatus.OK
     except RuntimeError:
