@@ -15,7 +15,9 @@ handler.setFormatter(logging.Formatter(
 LOGGER.addHandler(handler)
 app = Flask("order-service")
 
-# TODO: ADD CHECKS to see if USERS/ITEMS etc exist in the other databases
+@app.route('/', methods=['GET'])
+def root():
+    return jsonify({'message': 'check success'}), 200
 
 
 @app.route('/orders/create/<uuid:userid>', methods=['POST'])
