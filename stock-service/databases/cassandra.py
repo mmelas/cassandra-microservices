@@ -14,8 +14,6 @@ LOGGER.addHandler(handler)
 
 KEYSPACE = "stock_service"
 
-# TODO: check if we can use async in some queries
-
 
 class CassandraDatabase():
     """Cassandra database class instance"""
