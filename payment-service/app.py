@@ -15,6 +15,9 @@ handler.setFormatter(logging.Formatter(
 LOGGER.addHandler(handler)
 app = Flask("payment-service")
 
+@app.route('/', methods=['GET'])
+def root():
+    return jsonify({'message': 'check success'}), 200
 
 @app.route('/payment/pay/<uuid:user_id>/<uuid:order_id>/<float:amount>', methods=['POST'])
 def pay_order(user_id, order_id, amount):
