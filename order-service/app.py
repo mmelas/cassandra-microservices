@@ -71,7 +71,6 @@ def remove_item(orderid: UUID, itemid: UUID):
 def find_order(orderid: UUID):
     LOGGER.info("Finding information for orderid %s", orderid)
     try:
-        # TODO: Check if adding totalcost in the payment table
         # improves the performance in benchmarks
         order = database.find_order(orderid)
         if order == 404:
@@ -108,7 +107,7 @@ def checkout(orderid: UUID):
     payment = requests.post(
         f"{PAYMENT_SERVICE_URL}/payment/pay/{order_result['user_id']}/{orderid}/{order_result['total_cost']}")
 
-    # checkout stock for each item # TODO FIX not only use last stock_code
+    # checkout stock for each item
     for item, amount in order_result['items'][0].items():
         stock = requests.post(
             f"{STOCK_SERVICE_URL}/stock/subtract/{item}/{amount}")
@@ -121,9 +120,6 @@ def checkout(orderid: UUID):
         return jsonify({'message': 'success'}), 200
     else:
         # if not cancel payment and add back stock
-        # TODO add all edge cases lmao
-
-        # TODO check return code is valid of canceled payment
         payment_cancel = requests.post(
             f"{PAYMENT_SERVICE_URL}/payment/cancel/{order_result['user_id']}/{orderid}")
         return jsonify({'message': 'failure'}), 404

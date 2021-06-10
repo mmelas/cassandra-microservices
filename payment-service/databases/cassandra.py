@@ -18,9 +18,6 @@ LOGGER.addHandler(handler)
 KEYSPACE = "payament_service"
 
 
-# TODO: check if we can use async in some queries
-
-
 class CassandraDatabase():
     """Cassandra database class instance"""
     cluster = connection = None
@@ -65,7 +62,7 @@ class CassandraDatabase():
     def create_user(self):
         """Create a new entry in the users database with 0 credit"""
 
-        user_id = uuid4()  # TODO?: check whether uuid already in database
+        user_id = uuid4()
         self.connection.execute("""INSERT INTO payament_service.users (user_id, credit)
                                    VALUES (%s, 0.00)
                                 """, (user_id, ))
