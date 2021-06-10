@@ -18,7 +18,7 @@ elif ! command -v helm &> /dev/null; then
 fi
 
 usage(){
-    printf "$0 Flags:\n\t-d: Type of database to use (cassandra | postgres)\n" 
+    printf "Flags:\n\t-d: Type of database to use (cassandra | postgres)\n\t-b: Build Dockerfiles (otherwise pulls if not specified)\n"
     exit 0
 }
 
@@ -29,13 +29,16 @@ check_db_ready() {
     DEPLOYED=$(echo $VALUES | cut -f2 -d ' ')
 }
 
-[ $# -ne 2 ] && usage
+[ $# -lt 2 ] || [ $# -gt 3 ] && usage
 DB="None"
-while getopts "d:h" opt; do
+while getopts ":d:bh" opt; do
     case ${opt} in
         d)
             DB=${OPTARG}
-            ;; 
+            ;;
+        b)
+            BUILD=true
+            ;;
         h | *)
             usage
             exit 0
@@ -59,10 +62,14 @@ minikube start --cpus=4
 eval $(minikube docker-env)
 minikube addons enable ingress
 
-#! Pull now since it's quicker, change back when code is changed
-# docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:order-service ./order-service
-# docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:payment-service ./payment-service
-# docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:stock-service ./stock-service
+if [ "$BUILD" == true ]; then
+    echo -e ""$BLUE"Building docker images"$CLOSE""
+    docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:order-service ./order-service
+    docker build --cache-from nicktehrany/wdm-cassandra-microservices:order-service -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:payment-service ./payment-service
+    docker build --cache-from nicktehrany/wdm-cassandra-microservices:order-service -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:stock-service ./stock-service
+else
+    echo -e ""$BLUE"k8s will pull images from Dockerhub"$CLOSE""
+fi
 
 # Install helm repos for different databases
 helm repo add bitnami https://charts.bitnami.com/bitnami
@@ -77,7 +84,6 @@ fi
 # Check if databases are ready
 check_db_ready $DB
 
-# TODO: deploy apps for all services
 # Setting up postgres client to be used as a stepstone to connect app to the db
 if [[ "$DB" == "postgres" ]]; then
     while [ $READY -ne $DEPLOYED ]; do
@@ -86,9 +92,11 @@ if [[ "$DB" == "postgres" ]]; then
         check_db_ready $DB
     done
     echo -e ""$GREEN"Postgres pod is ready!"$CLOSE""
-    kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 --env="PGPASSWORD=password" --command -- psql --host postgresql -U postgres -d postgres -p 5432 -c "create database order_service" -c "create database payment_service" -c "create database stock_service"
+    kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 \
+        --env="PGPASSWORD=password" --command -- psql --host postgresql -U postgres -d postgres -p 5432 -c "create database order_service" \
+        -c "create database payment_service" -c "create database stock_service"
     kubectl apply -f order-service/k8s/deployment-postgres.yaml
-    kubectl apply -f payment-service-service/k8s/deployment-postgres.yaml
+    kubectl apply -f payment-service/k8s/deployment-postgres.yaml
     kubectl apply -f stock-service/k8s/deployment-postgres.yaml
 else
     while [ $READY -ne $DEPLOYED ]; do
