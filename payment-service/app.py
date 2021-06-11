@@ -55,6 +55,7 @@ def get_status(order_id):
     LOGGER.info("Getting status of payment for order %s", order_id)
     try:
         success, status = database.get_status(order_id)
+
         if not success:
             return jsonify({'message': 'Payment not found'}), HTTPStatus.NOT_FOUND
         else:
@@ -63,8 +64,9 @@ def get_status(order_id):
         return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@app.route('/payment/add_funds/<uuid:user_id>/<float:amount>', methods=['POST'])
+@app.route('/payment/add_funds/<uuid:user_id>/<amount>', methods=['POST'])
 def add_funds(user_id, amount):
+    amount = float(amount)
     LOGGER.info("Adding %s to credit for user %s", amount, user_id)
     try:
         success = database.add_credit(user_id, Decimal(amount))
@@ -102,4 +104,4 @@ def find_user(user_id):
 if __name__ == "__main__":
     DB = os.environ["DB"]
     database = CassandraDatabase() if DB == "cassandra" else PostgresDatabase()
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=5001)

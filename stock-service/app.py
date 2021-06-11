@@ -20,8 +20,9 @@ app = Flask("stock-service")
 def root():
     return jsonify({'message': 'check success'}), 200
 
-@app.route('/stock/item/create/<float:price>', methods=['POST'])
-def create_item(price: Decimal):
+@app.route('/stock/item/create/<price>', methods=['POST'])
+def create_item(price):
+    price = float(price)
     itemid = uuid4()
     LOGGER.info("Creating itemid %s", itemid)
     try:
@@ -91,4 +92,4 @@ def subtract_item(itemid: UUID, number: int):
 if __name__ == "__main__":
     DB = os.environ["DB"]
     database = CassandraDatabase() if DB == "cassandra" else PostgresDatabase()
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0',  port=5002)

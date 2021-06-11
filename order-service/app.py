@@ -102,9 +102,9 @@ def checkout(orderid: UUID):
     if order_code == 404:
         return jsonify({'message': 'non-existent orderid'}), 404
     if order_code == 500:
-        return jsonify({'message': 'failure'}), 500
+        return jsonify({'message': 'failure'}), 400
 
-    if not order_result['paid']:
+    if order_code == 200 and not order_result['paid']:
         # make payment
         payment = requests.post(
             f"{PAYMENT_SERVICE_URL}/payment/pay/{order_result['user_id']}/{orderid}/{order_result['total_cost']}")
@@ -121,12 +121,11 @@ def checkout(orderid: UUID):
                 if payment.status_code != 200:
                     LOGGER.error(
                         f'Canceling of payment with order id {orderid} failed')
-                return jsonify({'message': 'Stock subtraction failed'}), 404
+                return jsonify({'message': 'Stock subtraction failed'}), 400
         else:
-            return jsonify({'message': 'Payment failed'}), 404
+            return jsonify({'message': 'Payment failed'}), 400
     else:
-        return jsonify({'message': 'Order already paid'}), 404
-
+        return jsonify({'message': 'Order already paid'}), 400
 
 
 if __name__ == "__main__":

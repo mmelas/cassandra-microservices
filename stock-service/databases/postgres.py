@@ -97,12 +97,13 @@ class PostgresDatabase():
         try:
             tuples = list(map(lambda x: (items[x], x), items.keys()))
             query = "UPDATE stock SET quantity = quantity - %s WHERE itemid = %s"
-            psycopg2.extras.execute_batch(self.cursor, query, tuples)
+            psycopg2.extras.execute_batch(self.__cursor__(), query, tuples)
             return 201
         except Exception:
             return 404
 
     def get_all(self):
-        self.cursor.execute("""SELECT * FROM stock""")
-        result = self.cursor.fetchall()
+        cursor = self.__cursor__()
+        cursor.execute("""SELECT * FROM stock""")
+        result = cursor.fetchall()
         return list(map(lambda x: [x[0], float(x[1]), x[2]], result))

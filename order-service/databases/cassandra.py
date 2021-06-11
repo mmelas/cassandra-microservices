@@ -118,15 +118,16 @@ class CassandraDatabase():
         if order is None:
             return 404
 
-        order_info['order_id'] = order['order_id']
-        order_info['user_id'] = order['user_id']
+        order_info['order_id'] = str(order['order_id'])
+        order_info['user_id'] = str(order['user_id'])
         items = order['items']
+
 
         if order['items'] is not None:
             for item in items:
                 LOGGER.info("log item: " + str(item))
                 amount = order['items'][item]
-                order_info['items'][0][item] = amount
+                order_info['items'][0][str(item)] = amount
 
         return order_info
 
