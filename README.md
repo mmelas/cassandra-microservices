@@ -1,5 +1,83 @@
 # cassandra-microservices
 
+## Deploying on local k8s with minikbue
+
+In order to deploy the services on local k8s setup with minikube, required packages are:
+
+- [minikube](https://minikube.sigs.k8s.io/docs/start/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [helm](https://helm.sh/)
+
+Then the entire cluster can be started as (**Note:** only run this script **ONCE** in the beginning, as it does not clean up or reset. Can only rerun it if you delete the complete cluster.)
+
+```bash
+# With database being cassandra || postgres and -b for building images (takes longer) or pulling images from Dockerhub when flag not specified
+./startCluster.sh -d <database> [-b]
+```
+
+The script will start minikube with all required extensions enabled, set the minikube deamon to take over the docker deamon, then builds the docker image for the service (**Note this can take several minutes**). Next it installs helm packages for the databases (cassandra & postgres), and initializes the database. The setting up of the database can take several seconds, therefore the script waits for 20 seconds for this to complete, and then starts a database client, which is used by the application to connect to the database. Lastly, the pod for the application, the service exposing it in the cluster, and the ingress for exposing it outside the cluster are created in k8s.
+
+Make sure that all the pods and services deployed correctly by running
+
+```bash
+minikube dashboard
+```
+
+### Submitting queries with k8s
+
+In order to submit queries we need to get the endpoint (IP:Port) of the service that exposes the application.
+This can be done by running
+
+```bash
+minikube service <service>
+```
+
+which will open the service in a browser, and the link can be copied (or taken from the terminal). Paste this link into Postman to submit
+queries for the microservice. You can stop the service by CTRL-c in the terminal, but by doing that you can no longer have access to the service.
+
+Or if running with an ingress
+
+```bash
+minikube get ingress
+```
+
+and just copy the IP address with default port 80.
+
+## Deploying on Google Cloud
+
+For deploying on Google Cloud, there first needs to be a cluster. Create a cluster in Standard mode with preferably nodes close to the location of the requests. Next, activate the google cloud shell, initialize the project with, and deploy k8s as follows
+
+```bash
+# Set the project config
+gcloud config set project wdm-cassandra
+
+gcloud container clusters get-credentials <cluster_name>
+
+# clone the repo
+git clone https://github.com/mmelas/cassandra-microservices
+cd cassandra-microservices
+
+# Install helm repos for different databases
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+
+# Install the corresponding database, for cassandra:
+helm install cassandra --set dbUser.password=password bitnami/cassandra
+
+# For postgress (it also needs to start the client):
+helm install postgresql --set postgresqlPassword=password bitnami/postgresql
+kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 \
+        --env="PGPASSWORD=password" --command -- psql --host postgresql -U postgres -d postgres -p 5432 -c "create database order_service" \
+        -c "create database payment_service" -c "create database stock_service"
+
+# start the services, deploy the pods, etc. (Change the <database> to cassandra or postgres)
+kubectl apply -f order-service/k8s/deployment-<database>.yaml
+kubectl apply -f payment-service/k8s/deployment-<database>.yaml
+kubectl apply -f stock-service/k8s/deployment-<database>.yaml
+```
+
+Finally, delete all ingresses created and set up a new ingress for each service by going do the `Services & Ingress` section, selecting the service for which to create an ingress (select the checkbox) and click `Create Ingress` (at the top of the page). Then set up a name for the ingress (e.g. payment-ingress), in the `Host and path rules` select as the backend for the default path (the one that is already there) the service, and add an additional path with `Paths` set to `/orders/*` (change to respective service) and select the backend also to the corresponding service. Now, just create the service and make sure it passes all its health checks (this may take some time, 5-10mins).
+
 ## Developing the microservices (without k8s)
 
 - Need to start a database container [link](#starting-database-container), run either cassandra or postgres and specify in the app which one
@@ -78,41 +156,6 @@ python3 app.py
 docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:<service> ./<service>
 docker run --net="host" nicktehrany/wdm-cassandra-microservices:<service>
 ```
-
-## Deploying on local k8s with minikbue
-
-In order to deploy the services on local k8s setup with minikube, required packages are:
-
-- [minikube](https://minikube.sigs.k8s.io/docs/start/)
-- [kubectl](https://kubernetes.io/docs/tasks/tools/)
-- [helm](https://helm.sh/)
-
-Then the entire cluster can be started as (**Note:** only run this script **ONCE** in the beginning, as it does not clean up or reset. Can only rerun it if you delete the complete cluster.)
-
-```bash
-# With database being cassandra || postgres and -b for building images (takes longer) or pulling from Dockerhub
-./startCluster.sh -d <database> [-b]
-```
-
-The script will start minikube with all required extensions enabled, set the minikube deamon to take over the docker deamon, then builds the docker image for the service (**Note this can take several minutes**). Next it installs helm packages for the databases (cassandra & postgres), and initializes the database. The setting up of the database can take several seconds, therefore the script waits for 20 seconds for this to complete, and then starts a database client, which is used by the application to connect to the database. Lastly, the pod for the application, the service exposing it in the cluster, and the ingress for exposing it outside the cluster are created in k8s.
-
-Make sure that all the pods and services deployed correctly by running
-
-```bash
-minikube dashboard
-```
-
-### Submitting queries
-
-In order to submit queries we need to get the endpoint (IP:Port) of the service that exposes the application.
-This can be done by running
-
-```bash
-minikube service <service>
-```
-
-which will open the service in a browser, and the link can be copied (or taken from the terminal). Paste this link into Postman to submit
-queries for the microservice. You can stop the service by cntrl-c in the terminal, but by doing that you can no longer have access to the service.
 
 ### Troubleshooting
 
