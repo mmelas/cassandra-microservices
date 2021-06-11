@@ -19,8 +19,9 @@ app = Flask("payment-service")
 def root():
     return jsonify({'message': 'check success'}), 200
 
-@app.route('/payment/pay/<uuid:user_id>/<uuid:order_id>/<float:amount>', methods=['POST'])
+@app.route('/payment/pay/<uuid:user_id>/<uuid:order_id>/<amount>', methods=['POST'])
 def pay_order(user_id, order_id, amount):
+    amount = float(amount)
     LOGGER.info("Trying to pay order %s", order_id)
     try:
         success = database.subtract_credit(user_id, Decimal(amount))
@@ -104,4 +105,4 @@ def find_user(user_id):
 if __name__ == "__main__":
     DB = os.environ["DB"]
     database = CassandraDatabase() if DB == "cassandra" else PostgresDatabase()
-    app.run(host='0.0.0.0', port=5001)
+    app.run(host='0.0.0.0')
