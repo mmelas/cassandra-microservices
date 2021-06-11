@@ -49,6 +49,7 @@ class PostgresDatabase():
         """Insert an order with an orderid and a userid into the database."""
 
         self.__cursor__().execute("""INSERT INTO orders (orderid, userid)
+
                                VALUES (%s, %s)
                             """, (orderid, userid)
                                   )

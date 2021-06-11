@@ -19,8 +19,9 @@ app = Flask("payment-service")
 def root():
     return jsonify({'message': 'check success'}), 200
 
-@app.route('/payment/pay/<uuid:user_id>/<uuid:order_id>/<float:amount>', methods=['POST'])
+@app.route('/payment/pay/<uuid:user_id>/<uuid:order_id>/<amount>', methods=['POST'])
 def pay_order(user_id, order_id, amount):
+    amount = float(amount)
     LOGGER.info("Trying to pay order %s", order_id)
     try:
         success = database.subtract_credit(user_id, Decimal(amount))
@@ -55,16 +56,18 @@ def get_status(order_id):
     LOGGER.info("Getting status of payment for order %s", order_id)
     try:
         success, status = database.get_status(order_id)
+
         if not success:
-            return jsonify({'message': 'Payment not found'}), HTTPStatus.BAD_REQUEST
+            return jsonify({'message': 'Payment not found'}), HTTPStatus.NOT_FOUND
         else:
             return jsonify({'paid': status}), HTTPStatus.OK
     except RuntimeError:
         return jsonify({'message': 'failure'}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@app.route('/payment/add_funds/<uuid:user_id>/<float:amount>', methods=['POST'])
+@app.route('/payment/add_funds/<uuid:user_id>/<amount>', methods=['POST'])
 def add_funds(user_id, amount):
+    amount = float(amount)
     LOGGER.info("Adding %s to credit for user %s", amount, user_id)
     try:
         success = database.add_credit(user_id, Decimal(amount))

@@ -1,6 +1,6 @@
 import simplejson
 from cassandra.cqlengine.columns import Decimal
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from databases.cassandra import CassandraDatabase
 from databases.postgres import PostgresDatabase
 import logging
@@ -20,8 +20,9 @@ app = Flask("stock-service")
 def root():
     return jsonify({'message': 'check success'}), 200
 
-@app.route('/stock/item/create/<float:price>', methods=['POST'])
-def create_item(price: Decimal):
+@app.route('/stock/item/create/<price>', methods=['POST'])
+def create_item(price):
+    price = float(price)
     itemid = uuid4()
     LOGGER.info("Creating itemid %s", itemid)
     try:
@@ -43,6 +44,15 @@ def add_item(itemid: UUID, number: int):
         return jsonify({'message': 'failure'}), 500
 
 
+@app.route('/stock/getall', methods=['GET'])
+def get_all():
+    try:
+        result = database.get_all()
+        return jsonify({'message': result}), 201
+    except Exception as e:
+        return jsonify({'message': 'failure'}), 400
+
+
 @app.route('/stock/find/<uuid:itemid>', methods=['GET'])
 def find_item(itemid: UUID):
     LOGGER.info("Finding information for itemid %s", itemid)
@@ -55,6 +65,13 @@ def find_item(itemid: UUID):
             return jsonify({'message': 'non-existent itemid'}), 404
     except RuntimeError:
         return jsonify({'message': 'failure'}), 500
+
+
+@app.route('/stock/subtract/multiple', methods=['POST'])
+def subtract_multiple():
+    items = request.get_json()
+    code = database.subtract_multiple(items)
+    return jsonify({'message': 'success' if code == 201 else 'failure'}), code
 
 
 @app.route('/stock/subtract/<uuid:itemid>/<int:number>', methods=['POST'])

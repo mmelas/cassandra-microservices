@@ -15,6 +15,7 @@ handler.setFormatter(logging.Formatter(
 LOGGER.addHandler(handler)
 app = Flask("order-service")
 
+
 @app.route('/', methods=['GET'])
 def root():
     return jsonify({'message': 'check success'}), 200
@@ -101,28 +102,29 @@ def checkout(orderid: UUID):
     if order_code == 404:
         return jsonify({'message': 'non-existent orderid'}), 404
     if order_code == 500:
-        return jsonify({'message': 'non-existent orderid'}), 500
+        return jsonify({'message': 'failure'}), 400
 
-    # make payment
-    payment = requests.post(
-        f"{PAYMENT_SERVICE_URL}/payment/pay/{order_result['user_id']}/{orderid}/{order_result['total_cost']}")
-
-    # checkout stock for each item
-    for item, amount in order_result['items'][0].items():
-        stock = requests.post(
-            f"{STOCK_SERVICE_URL}/stock/subtract/{item}/{amount}")
-
-    # check all return codes are good
-    if (
-        payment.status_code == order_code == 200 and stock.status_code == 201 and
-        stock.json()['message'] == 'success'
-    ):
-        return jsonify({'message': 'success'}), 200
+    if order_code == 200 and not order_result['paid']:
+        # make payment
+        payment = requests.post(
+            f"{PAYMENT_SERVICE_URL}/payment/pay/{order_result['user_id']}/{orderid}/{order_result['total_cost']}")
+        LOGGER.info(payment.status_code)
+        if payment.status_code == 200:
+            stock = requests.post(
+                f"{STOCK_SERVICE_URL}/stock/subtract/multiple", json=order_result['items'][0])
+            if stock.status_code == 201:
+                return jsonify({'message': 'success'}), 200
+            else:
+                payment = requests.post(
+                    f"{PAYMENT_SERVICE_URL}/payment/cancel/{order_result['user_id']}/{orderid}")
+                if payment.status_code != 200:
+                    LOGGER.error(
+                        f'Canceling of payment with order id {orderid} failed')
+                return jsonify({'message': 'Stock subtraction failed'}), 400
+        else:
+            return jsonify({'message': 'Payment failed'}), 400
     else:
-        # if not cancel payment and add back stock
-        payment_cancel = requests.post(
-            f"{PAYMENT_SERVICE_URL}/payment/cancel/{order_result['user_id']}/{orderid}")
-        return jsonify({'message': 'failure'}), 404
+        return jsonify({'message': 'Order already paid'}), 400
 
 
 if __name__ == "__main__":
