@@ -20,11 +20,11 @@ make sure it built
 docker image ls
 ```
 
-run the image 
+run the image
 
 ```bash
 docker run -p 5000:5000 nicktehrany/wdm-cassandra-microservices:<service>
-``` 
+```
 
 to unset the minikube deamons (detach them from the docker deamon)
 
@@ -105,13 +105,13 @@ minikube dashboard
 ### Submitting queries
 
 In order to submit queries we need to get the endpoint (IP:Port) of the service that exposes the application.
-This can be done by running 
+This can be done by running
 
 ```bash
 minikube service <service>
 ```
 
-which will open the service in a browser, and the link can be copied (or taken from the terminal). Paste this link into Postman to submit 
+which will open the service in a browser, and the link can be copied (or taken from the terminal). Paste this link into Postman to submit
 queries for the microservice. You can stop the service by cntrl-c in the terminal, but by doing that you can no longer have access to the service.
 
 ### Troubleshooting
@@ -123,8 +123,8 @@ This is caused due to network limiting the docker deamon, to fix it just replace
 
 #### 'psql: could not connect to server: Connection refused'
 
-The above script (startCluster.sh) may show an error 'psql: could not connect to server: Connection refused'. 
-You can ignore this, since the postgres-client probably has not finished setting up the pod yet. Just wait for a minute or so and 
+The above script (startCluster.sh) may show an error 'psql: could not connect to server: Connection refused'.
+You can ignore this, since the postgres-client probably has not finished setting up the pod yet. Just wait for a minute or so and
 then manually deploy the postgres client and then deploy the services with
 
 ```bash

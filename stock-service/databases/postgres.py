@@ -13,7 +13,7 @@ LOGGER.addHandler(handler)
 
 class PostgresDatabase():
     """Postgres database class instance"""
-    connection = cursor = None
+    connection = None
 
     def __init__(self):
 
@@ -26,35 +26,39 @@ class PostgresDatabase():
                                            password="password")
         self.connection.autocommit = True
 
-        self.cursor = self.connection.cursor()
-
         psycopg2.extras.register_uuid(self.connection)
         LOGGER.info("Instantiating table stock-service")
 
-        self.cursor.execute("""CREATE TABLE IF NOT EXISTS stock (
+        self.__cursor__().execute("""CREATE TABLE IF NOT EXISTS stock (
                                 itemid uuid,
                                 price NUMERIC(10,2) NOT NULL,
                                 quantity int DEFAULT 0 CHECK (quantity>=0),
                                 PRIMARY KEY (itemid)   
                                 )"""
-                            )
+                                  )
+
+    def __cursor__(self):
+        """Get a new database cursor"""
+
+        return self.connection.cursor()
 
     def create_item(self, itemid: UUID, price: float):
         """Create an item with price"""
 
-        self.cursor.execute("""INSERT INTO stock (itemid,price,quantity)
+        self.__cursor__().execute("""INSERT INTO stock (itemid,price,quantity)
                                 VALUES (%s,%s,1)
                                 """, (itemid, price)
-                            )
+                                  )
 
     def get(self, itemid: UUID):
         """Retrieve information of the number of a specific item with itemid from the database"""
 
-        self.cursor.execute("""SELECT price,quantity FROM stock
+        cursor = self.__cursor__()
+        cursor.execute("""SELECT price,quantity FROM stock
                                         WHERE itemid = %s
                                         """, (itemid,)
-                            )
-        item = self.cursor.fetchone()
+                       )
+        item = cursor.fetchone()
         return {
             'stock': item[1],
             'price': item[0],
@@ -66,7 +70,8 @@ class PostgresDatabase():
         if item is None:
             return 404
         else:
-            self.cursor.execute("""UPDATE stock
+            cursor = self.__cursor__()
+            cursor.execute("""UPDATE stock
                                     SET quantity = quantity + %s
                                     WHERE itemid = %s
                                     """, (number, itemid))
@@ -82,7 +87,8 @@ class PostgresDatabase():
                 LOGGER.info("input number is larger than the stock!")
                 return 400
             else:
-                self.cursor.execute("""UPDATE stock
+                cursor = self.__cursor__()
+                cursor.execute("""UPDATE stock
                                         SET quantity = quantity - %s
                                         WHERE itemid = %s
                                         """, (number, itemid))

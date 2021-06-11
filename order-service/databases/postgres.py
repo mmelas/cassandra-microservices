@@ -14,7 +14,7 @@ LOGGER.addHandler(handler)
 
 class PostgresDatabase():
     """Postgres database class instance"""
-    connection = cursor = None
+    connection = None
 
     def __init__(self):
         LOGGER.info("Connecting to postgres")
@@ -25,40 +25,45 @@ class PostgresDatabase():
                                            password="password")
         self.connection.autocommit = True
 
-        self.cursor = self.connection.cursor()
-
         # load hstore extension into current database
-        self.cursor.execute("""CREATE EXTENSION IF NOT EXISTS hstore;""")
+        self.__cursor__().execute("""CREATE EXTENSION IF NOT EXISTS hstore;""")
 
         psycopg2.extras.register_hstore(self.connection)
         psycopg2.extras.register_uuid(self.connection)
         LOGGER.info("Instantiating table order-service")
 
-        self.cursor.execute("""CREATE TABLE IF NOT EXISTS orders (
+        self.__cursor__().execute("""CREATE TABLE IF NOT EXISTS orders (
                                 orderid uuid PRIMARY KEY,
                                 userid uuid,
                                 items hstore
                                 )
                             """
-                            )
+                                  )
+
+    def __cursor__(self):
+        """Get a new database cursor"""
+
+        return self.connection.cursor()
 
     def put(self, orderid: UUID, userid: UUID):
         """Insert an order with an orderid and a userid into the database."""
 
-        self.cursor.execute("""INSERT INTO orders (orderid, userid)
+        self.__cursor__().execute("""INSERT INTO orders (orderid, userid)
+
                                VALUES (%s, %s)
                             """, (orderid, userid)
-                            )
+                                  )
 
     def get(self, orderid: UUID):
         """Retrieve information of an order with orderid from the database"""
 
-        self.cursor.execute("""SELECT * FROM orders 
+        cursor = self.__cursor__()
+        cursor.execute("""SELECT * FROM orders 
                                 WHERE orderid = %s
                                 """, (orderid,)
-                            )
+                       )
 
-        order = self.cursor.fetchone()
+        order = cursor.fetchone()
         return {
             'order_id': order[0],
             'user_id': order[1],
@@ -73,17 +78,17 @@ class PostgresDatabase():
             return 404
 
         if order['items'] == None:
-            self.cursor.execute("""UPDATE orders
+            self.__cursor__().execute("""UPDATE orders
                                    SET items = hstore(%s::text, 1::text) 
                                    WHERE orderid = %s
                                    """, (itemid, orderid))
         elif str(itemid) in order['items']:
-            self.cursor.execute("""UPDATE orders
+            self.__cursor__().execute("""UPDATE orders
                                     SET items = items || hstore(%s::text, %s::text)
                                     WHERE orderid = %s
                                     """, (itemid, int(order['items'][str(itemid)]) + 1, orderid))
         else:
-            self.cursor.execute("""UPDATE orders
+            self.__cursor__().execute("""UPDATE orders
                                    SET items = items || hstore(%s::text, 1::text) 
                                    WHERE orderid = %s
                                    """, (itemid, orderid))
@@ -98,14 +103,14 @@ class PostgresDatabase():
 
         # if item amount is 1 remove it
         if order['items'][str(itemid)] == '1':
-            self.cursor.execute("""UPDATE orders
+            self.__cursor__().execute("""UPDATE orders
                                     SET items = delete(items, %s::text)
                                     WHERE orderid = %s
                                     """, (itemid, orderid)
-                                )
+                                      )
         else:
             # if order and item exists and item amount is > 1 decrement it by 1
-            self.cursor.execute("""UPDATE orders
+            self.__cursor__().execute("""UPDATE orders
                                     SET items = items || hstore(%s::text, %s::text)
                                     WHERE orderid = %s
                                     """, (itemid, int(order['items'][str(itemid)]) - 1, orderid))
@@ -138,7 +143,8 @@ class PostgresDatabase():
         order = self.get(orderid)
         if order is None:
             return 404
-        self.cursor.execute("""DELETE FROM orders
+
+        self.__cursor__().execute("""DELETE FROM orders
                                 WHERE orderid = %s
                             """, (orderid,)
-                            )
+                                  )

@@ -16,6 +16,9 @@ handler.setFormatter(logging.Formatter(
 LOGGER.addHandler(handler)
 app = Flask("stock-service")
 
+@app.route('/', methods=['GET'])
+def root():
+    return jsonify({'message': 'check success'}), 200
 
 @app.route('/stock/item/create/<float:price>', methods=['POST'])
 def create_item(price: Decimal):

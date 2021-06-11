@@ -18,7 +18,7 @@ elif ! command -v helm &> /dev/null; then
 fi
 
 usage(){
-    printf "Flags:\n\t-d: Type of database to use (cassandra | postgres)\n\t-b: Build Dockerfiles (otherwise pulls if not specified)\n" 
+    printf "Flags:\n\t-d: Type of database to use (cassandra | postgres)\n\t-b: Build Dockerfiles (otherwise pulls if not specified)\n"
     exit 0
 }
 

@@ -15,6 +15,10 @@ handler.setFormatter(logging.Formatter(
 LOGGER.addHandler(handler)
 app = Flask("order-service")
 
+@app.route('/', methods=['GET'])
+def root():
+    return jsonify({'message': 'check success'}), 200
+
 
 @app.route('/orders/create/<uuid:userid>', methods=['POST'])
 def create_order(userid: UUID):
@@ -122,6 +126,7 @@ def checkout(orderid: UUID):
             return jsonify({'message': 'Payment failed'}), 404
     else:
         return jsonify({'message': 'Order already paid'}), 404
+
 
 
 if __name__ == "__main__":
