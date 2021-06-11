@@ -157,6 +157,6 @@ class PostgresDatabase():
         status = cursor.fetchone()
 
         if status is None:
-            return False, None  # that was quick fail hahahahaha I assume the first create use created that exact user but next thig returns none?
-        else:  # I am not sure about that, maybe now the error is more clearer execute always returns nonel ol rofl
+            return False, None
+        else:
             return True, status

@@ -15,6 +15,7 @@ handler.setFormatter(logging.Formatter(
 LOGGER.addHandler(handler)
 app = Flask("order-service")
 
+
 @app.route('/', methods=['GET'])
 def root():
     return jsonify({'message': 'check success'}), 200
@@ -78,7 +79,6 @@ def find_order(orderid: UUID):
         total_cost = 0
         items = order['items'][0]
         for item, amount in items.items():
-            # ! Returns 404 when item doesn't exist then can't index, but how can it be 404 if item is in db order already?
             stock_item = requests.get(f"{STOCK_SERVICE_URL}/stock/find/{item}")
             total_cost += int(amount) * float(stock_item.json()['price'])
         order['total_cost'] = total_cost
@@ -110,7 +110,6 @@ def checkout(orderid: UUID):
             f"{PAYMENT_SERVICE_URL}/payment/pay/{order_result['user_id']}/{orderid}/{order_result['total_cost']}")
         LOGGER.info(payment.status_code)
         if payment.status_code == 200:
-            # TODO FIX not only use last stock_code
             stock = requests.post(
                 f"{STOCK_SERVICE_URL}/stock/subtract/multiple", json=order_result['items'][0])
             if stock.status_code == 201:
