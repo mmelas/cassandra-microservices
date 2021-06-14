@@ -65,7 +65,7 @@ helm repo update
 helm install cassandra --set dbUser.password=password bitnami/cassandra
 
 # For postgress (it also needs to start the client):
-helm install postgresql --set postgresqlPassword=password bitnami/postgresql
+helm install postgresql --set postgresqlPassword=password bitnami/postgresql --set postgresqlExtendedConf.max_files_per_process=100
 kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 \
         --env="PGPASSWORD=password" --command -- psql --host postgresql -U postgres -d postgres -p 5432 -c "create database order_service" \
         -c "create database payment_service" -c "create database stock_service"
@@ -87,6 +87,8 @@ Finally, delete all ingresses created and set up a new ingress for each service 
 build the docker image for the respective microservice folder
 (replace service with the service you want to test)
 
+**Note** you need to change the ip addresses of the database connection (in postgres.py and cassandra.py for all respective services) to localhost and run the application (in app.py set `app.run(host=127.0.0.1` and add ports 5000-5002 for the services), also change the urls for the services in the services so they can communicate with each other, and lastly hardcode a database to start in the app.py, or export an env var for the DB.
+
 ```bash
 # adjust build concurrency in the dockerfile to what your system can handle
 docker build -f Dockerfile -t nicktehrany/wdm-cassandra-microservices:<service> ./<service>
@@ -102,12 +104,6 @@ run the image
 
 ```bash
 docker run -p 5000:5000 nicktehrany/wdm-cassandra-microservices:<service>
-```
-
-to unset the minikube deamons (detach them from the docker deamon)
-
-```bash
-eval $(minikube docker-env -u)
 ```
 
 ### Starting database container

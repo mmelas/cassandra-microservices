@@ -29,7 +29,8 @@ class PostgresDatabase():
         psycopg2.extras.register_uuid(self.connection)
         LOGGER.info("Instantiating table payment-service")
 
-        self.__cursor__().execute("""
+        cursor = self.__cursor__()
+        cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                                 user_id uuid PRIMARY KEY,
                                 credit NUMERIC(20,2)
@@ -40,7 +41,8 @@ class PostgresDatabase():
                                 amount NUMERIC(20,2)
                                 );
                             """
-                                  )
+                       )
+        cursor.close()
 
     def __cursor__(self):
         """Get a new database cursor"""
@@ -51,10 +53,12 @@ class PostgresDatabase():
         """Create a new entry in the users database with 0 credit"""
 
         user_id = uuid4()
-        self.__cursor__().execute("""INSERT INTO users (user_id, credit)
+        cursor = self.__cursor__()
+        cursor.execute("""INSERT INTO users (user_id, credit)
                             VALUES (%s, %s)
                             """, (user_id, float(0))
-                                  )
+                       )
+        cursor.close()
 
         return user_id
 
@@ -66,6 +70,7 @@ class PostgresDatabase():
                             WHERE user_id = %s""", (user_id,))
 
         result = cursor.fetchone()
+        cursor.close()
 
         if result is None:
             return False, None
@@ -82,6 +87,8 @@ class PostgresDatabase():
 
         result = cursor.fetchone()
 
+        cursor.close()
+
         if result is None:
             return False
 
@@ -92,10 +99,12 @@ class PostgresDatabase():
         if new_credit < 0:
             return False
         else:
-            self.__cursor__().execute("""UPDATE users
+            cursor = self.__cursor__()
+            cursor.execute("""UPDATE users
                         SET credit = %s 
                         WHERE user_id = %s 
                         """, (new_credit, user_id))
+            cursor.close()
             return True
 
     def add_credit(self, user_id, amount):
@@ -107,24 +116,30 @@ class PostgresDatabase():
                                     """, (user_id,))
 
         result = cursor.fetchone()
+        cursor.close()
+
         if result is None:
             return False
 
         credit = result[0]
         new_credit = credit + amount
 
-        self.__cursor__().execute("""UPDATE users
+        cursor = self.__cursor__()
+        cursor.execute("""UPDATE users
                         SET credit = %s 
                         WHERE user_id = %s 
                         """, (new_credit, user_id))
+        cursor.close()
         return True
 
     def add_payment(self, order_id, paid, amount):
         """Enter new payment into payments database"""
 
-        self.__cursor__().execute("""INSERT INTO payments (order_id, status, amount)
+        cursor = self.__cursor__()
+        cursor.execute("""INSERT INTO payments (order_id, status, amount)
                     VALUES(%s, %s, %s)
                     """, (order_id, paid, amount))
+        cursor.close()
 
     def cancel_payment(self, order_id):
         """Change status of payment to unpaid"""
@@ -135,12 +150,15 @@ class PostgresDatabase():
                             """, (order_id,))
 
         amount = cursor.fetchone()
+        cursor.close()
 
         if amount is not None:
-            self.__cursor__().execute("""UPDATE payments
+            cursor = self.__cursor__()
+            cursor.execute("""UPDATE payments
                         SET status = false
                         WHERE order_id = %s
                         """, (order_id,))
+            cursor.close()
 
             return True, amount
         else:
@@ -155,6 +173,7 @@ class PostgresDatabase():
                             """, (order_id,))
 
         status = cursor.fetchone()
+        cursor.close()
 
         if status is None:
             return False, None
