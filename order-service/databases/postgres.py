@@ -5,7 +5,7 @@ from uuid import uuid4, UUID
 import os
 
 LOGGER = logging.getLogger()
-LOGGER.setLevel('DEBUG')
+LOGGER.disable('ERROR')
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(
     "%(asctime)s [%(levelname)s] %(name)s: %(message)s"))

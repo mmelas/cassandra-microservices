@@ -5,7 +5,7 @@ from cassandra.policies import DCAwareRoundRobinPolicy
 from uuid import uuid4, UUID
 
 LOGGER = logging.getLogger()
-LOGGER.setLevel('DEBUG')
+LOGGER.disable('ERROR')
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(
     "%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
@@ -121,7 +121,6 @@ class CassandraDatabase():
         order_info['order_id'] = str(order['order_id'])
         order_info['user_id'] = str(order['user_id'])
         items = order['items']
-
 
         if order['items'] is not None:
             for item in items:
