@@ -76,7 +76,7 @@ helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
 
 if [[ "$DB" == "postgres" ]]; then
-    helm install postgresql --set postgresqlPassword=password bitnami/postgresql
+    helm install postgresql --set postgresqlPassword=password bitnami/postgresql --set postgresqlExtendedConf.max_files_per_process=100
 elif [[ "$DB" == "cassandra" ]]; then
     helm install cassandra --set dbUser.password=password bitnami/cassandra
 fi
