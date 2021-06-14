@@ -13,9 +13,12 @@ Then the entire cluster can be started as (**Note:** only run this script **ONCE
 ```bash
 # With database being cassandra || postgres and -b for building images (takes longer) or pulling images from Dockerhub when flag not specified
 ./startCluster.sh -d <database> [-b]
+
+# for example for deploying cassandra with pulled images:
+./startCluster.sh -d cassandra
 ```
 
-The script will start minikube with all required extensions enabled, set the minikube deamon to take over the docker deamon, then builds the docker image for the service (**Note this can take several minutes**). Next it installs helm packages for the databases (cassandra & postgres), and initializes the database. The setting up of the database can take several seconds, therefore the script waits for 20 seconds for this to complete, and then starts a database client, which is used by the application to connect to the database. Lastly, the pod for the application, the service exposing it in the cluster, and the ingress for exposing it outside the cluster are created in k8s.
+The script will start minikube with all required extensions enabled, set the minikube deamon to take over the docker deamon, then builds the docker image for the service (**Note this can take several minutes**). Next it installs helm packages for the databases (cassandra & postgres), and initializes the database. The setting up of the database can take several seconds, therefore the script waits for 20 seconds for this to complete, and then starts a database client, which is used by the application to connect to the database. Lastly, the pod for the application and the service exposing it in the cluster. **Note**, we run locally so there is no need for the ingress for exposing services outside the cluster.
 
 Make sure that all the pods and services deployed correctly by running
 
@@ -74,9 +77,22 @@ kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace defaul
 kubectl apply -f order-service/k8s/deployment-<database>.yaml
 kubectl apply -f payment-service/k8s/deployment-<database>.yaml
 kubectl apply -f stock-service/k8s/deployment-<database>.yaml
+
+# Setup the kong ingress, proxy, and webhook
+kubectl create -f https://bit.ly/k4k8s
+
+# Ensure it has started (can take a couple minutes)
+kubectl -n kong get service kong-proxy # wait for the external-IP to show up
+
+# Deploy the service ingress over the kong ingress
+kubectl apply -f k8s/order-ingress.yaml
+kubectl apply -f k8s/stock-ingress.yaml
+kubectl apply -f k8s/payment-ingress.yaml
 ```
 
-Finally, delete all ingresses created and set up a new ingress for each service by going do the `Services & Ingress` section, selecting the service for which to create an ingress (select the checkbox) and click `Create Ingress` (at the top of the page). Then set up a name for the ingress (e.g. payment-ingress), in the `Host and path rules` select as the backend for the default path (the one that is already there) the service, and add an additional path with `Paths` set to `/orders/*` (change to respective service) and select the backend also to the corresponding service. Now, just create the service and make sure it passes all its health checks (this may take some time, 5-10mins).
+This is using the (kong ingress controller)[https://github.com/Kong/kubernetes-ingress-controller] for kubernetes that handles external 
+load balancing, provide validation webhooks, and use a proxy for forwarding requests to the correct services. The service ingress are then deployed
+separately and connect to the kong ingress to receive their correct requests.
 
 ## Developing the microservices (without k8s)
 
