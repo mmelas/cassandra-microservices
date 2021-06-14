@@ -18,12 +18,15 @@ Then the entire cluster can be started as (**Note:** only run this script **ONCE
 ./startCluster.sh -d cassandra
 ```
 
-The script will start minikube with all required extensions enabled, set the minikube deamon to take over the docker deamon, then builds the docker image for the service (**Note this can take several minutes**). Next it installs helm packages for the databases (cassandra & postgres), and initializes the database. The setting up of the database can take several seconds, therefore the script waits for 20 seconds for this to complete, and then starts a database client, which is used by the application to connect to the database. Lastly, the pod for the application and the service exposing it in the cluster. **Note**, we run locally so there is no need for the ingress for exposing services outside the cluster.
+The script will start minikube with all required extensions enabled, set the minikube deamon to take over the docker deamon, then either pulls images from dockerhub or builds images for the service, depending on the specified `-b` flag. Next it installs helm packages for the databases (cassandra & postgres), and initializes the database. The setting up of the database can take several seconds, therefore the script waits until all deployed pods are ready this, and then starts a database client, which is used by the application to connect to the database. Lastly, the pods for the application and the services exposing it in the cluster are deployed. **Note**, we run locally so there is no need for the ingress for exposing services outside the cluster.
 
-Make sure that all the pods and services deployed correctly by running
+For deploying locally with minikube, make sure that all the pods and services deployed correctly by running
 
 ```bash
 minikube dashboard
+
+# OR
+kubectl get <pods,service,ingress,etc.>
 ```
 
 ### Submitting queries with k8s
@@ -38,13 +41,14 @@ minikube service <service>
 which will open the service in a browser, and the link can be copied (or taken from the terminal). Paste this link into Postman to submit
 queries for the microservice. You can stop the service by CTRL-c in the terminal, but by doing that you can no longer have access to the service.
 
-Or if running with an ingress
+Or if running with an ingress when deployed on cloud (Note local deployment in minikube does not need ingress as it does not expose ports for external
+access)
 
 ```bash
-minikube get ingress
+kubectl get ingress
 ```
 
-and just copy the IP address with default port 80.
+and just copy the IP address with port 80 (which was configured in the .yaml config).
 
 ## Deploying on Google Cloud
 

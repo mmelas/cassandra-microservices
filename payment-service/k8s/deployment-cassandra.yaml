@@ -8,7 +8,7 @@ spec:
   selector:
     matchLabels:
       app: payment-deployment
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       labels:
@@ -42,24 +42,3 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 5000
-
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: payment-ingress
-  labels:
-    name: payment-ingress
-  annotations:
-    ingress.kubernetes.io/rewrite-target: /payment
-spec:
-  rules:
-    - http:
-        paths:
-          - pathType: Prefix
-            path: "/payment"
-            backend:
-              service:
-                name: payment-service
-                port:
-                  number: 80

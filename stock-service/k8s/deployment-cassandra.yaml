@@ -8,7 +8,7 @@ spec:
   selector:
     matchLabels:
       app: stock-deployment
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       labels:
@@ -42,24 +42,3 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 5000
-
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: stock-ingress
-  labels:
-    name: stock-ingress
-  annotations:
-    ingress.kubernetes.io/rewrite-target: /stock
-spec:
-  rules:
-    - http:
-        paths:
-          - pathType: Prefix
-            path: "/stock"
-            backend:
-              service:
-                name: stock-service
-                port:
-                  number: 80
