@@ -8,7 +8,7 @@ spec:
   selector:
     matchLabels:
       app: order-deployment
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       labels:
@@ -42,24 +42,3 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 5000
-
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: order-ingress
-  labels:
-    name: order-ingress
-  annotations:
-    ingress.kubernetes.io/rewrite-target: /orders
-spec:
-  rules:
-    - http:
-        paths:
-          - pathType: Prefix
-            path: "/orders"
-            backend:
-              service:
-                name: order-service
-                port:
-                  number: 80
