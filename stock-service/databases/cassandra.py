@@ -8,7 +8,7 @@ from cassandra.query import dict_factory
 from uuid import uuid4, UUID
 
 LOGGER = logging.getLogger()
-LOGGER.disable('ERROR')
+LOGGER.setLevel('DEBUG')
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(
     "%(asctime)s [%(levelname)s] %(name)s: %(message)s"))

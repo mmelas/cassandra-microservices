@@ -8,16 +8,18 @@ from databases.postgres import PostgresDatabase
 import os
 
 LOGGER = logging.getLogger()
-LOGGER.disable('ERROR')
+LOGGER.setLevel('DEBUG')
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(
     "%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
 LOGGER.addHandler(handler)
 app = Flask("payment-service")
 
+
 @app.route('/', methods=['GET'])
 def root():
     return jsonify({'message': 'check success'}), 200
+
 
 @app.route('/payment/pay/<uuid:user_id>/<uuid:order_id>/<amount>', methods=['POST'])
 def pay_order(user_id, order_id, amount):
