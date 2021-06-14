@@ -92,9 +92,9 @@ if [[ "$DB" == "postgres" ]]; then
         check_db_ready $DB
     done
     echo -e ""$GREEN"Postgres pod is ready!"$CLOSE""
-    kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 \
+    nohup kubectl run postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:11.12.0-debian-10-r13 \
         --env="PGPASSWORD=password" --command -- psql --host postgresql -U postgres -d postgres -p 5432 -c "create database order_service" \
-        -c "create database payment_service" -c "create database stock_service"
+        -c "create database payment_service" -c "create database stock_service" >/dev/null 2>&1 &
     kubectl apply -f order-service/k8s/deployment-postgres.yaml
     kubectl apply -f payment-service/k8s/deployment-postgres.yaml
     kubectl apply -f stock-service/k8s/deployment-postgres.yaml
