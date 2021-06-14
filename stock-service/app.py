@@ -9,16 +9,18 @@ from uuid import uuid4, UUID
 
 
 LOGGER = logging.getLogger()
-LOGGER.setLevel('DEBUG')
+LOGGER.disable('ERROR')
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(
     "%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
 LOGGER.addHandler(handler)
 app = Flask("stock-service")
 
+
 @app.route('/', methods=['GET'])
 def root():
     return jsonify({'message': 'check success'}), 200
+
 
 @app.route('/stock/item/create/<price>', methods=['POST'])
 def create_item(price):

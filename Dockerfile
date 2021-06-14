@@ -9,7 +9,7 @@ RUN apk update && apk add libpq postgresql-dev gcc musl-dev
 COPY requirements.txt /app/
 WORKDIR /app
 RUN pip3 install -r requirements.txt
-RUN CASS_DRIVER_BUILD_CONCURRENCY=2 pip3 install cassandra-driver==3.25.0
+RUN CASS_DRIVER_BUILD_CONCURRENCY=4 pip3 install cassandra-driver==3.25.0
 COPY . /app/
 
 CMD ["python3", "app.py"]
