@@ -94,7 +94,7 @@ kubectl apply -f k8s/stock-ingress.yaml
 kubectl apply -f k8s/payment-ingress.yaml
 ```
 
-This is using the (kong ingress controller)[https://github.com/Kong/kubernetes-ingress-controller] for kubernetes that handles external 
+This is using the [kong ingress controller](https://github.com/Kong/kubernetes-ingress-controller) for kubernetes that handles external 
 load balancing, provide validation webhooks, and use a proxy for forwarding requests to the correct services. The service ingress are then deployed
 separately and connect to the kong ingress to receive their correct requests.
 
