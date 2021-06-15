@@ -29,6 +29,19 @@ minikube dashboard
 kubectl get <pods,service,ingress,etc.>
 ```
 
+### Startup Script Troubleshooting
+
+#### Postgres Client timeout
+
+Sometimes the script fails due to a timeout for the postgres client, in that case the script will exit due to the failure without having deployed the pods.
+In order to deploy the pods manually run,
+
+```bash
+kubectl apply -f order-service/k8s/deployment-postgres.yaml
+kubectl apply -f payment-service/k8s/deployment-postgres.yaml
+kubectl apply -f stock-service/k8s/deployment-postgres.yaml
+```
+
 ### Submitting queries with k8s
 
 In order to submit queries we need to get the endpoint (IP:Port) of the service that exposes the application.
@@ -175,7 +188,7 @@ docker run --net="host" nicktehrany/wdm-cassandra-microservices:<service>
 
 ### Troubleshooting
 
-#### X Exiting due to MK_USAGE: Due to networking limitations of driver docker on darwin, ingress addon is not supported'
+#### Exiting due to MK_USAGE: Due to networking limitations of driver docker on darwin, ingress addon is not supported'
 
 This is caused due to network limiting the docker deamon, to fix it just replace the `minikube start` in the `startCluster.sh` script with
 `minikube start --vm=true`
